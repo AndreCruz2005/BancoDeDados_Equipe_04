@@ -16,7 +16,6 @@ CREATE TABLE PessoaTelefone(
     CONSTRAINT fk_pessoatelefone_telefone FOREIGN KEY(numero) REFERENCES Telefone(numero)
 );
 
-
 CREATE TABLE Sepultamento(
     falecido_id INT,
     jazigo_id INT,
@@ -50,7 +49,7 @@ CREATE TABLE Parentesco(
 
 CREATE TABLE Gerencia(
     gerente_id INT,
-    gerenciado_id INT,
+    gerenciado_id INT UNIQUE,
     PRIMARY KEY(gerente_id, gerenciado_id),
     CHECK(gerente_id != gerenciado_id),
     CONSTRAINT fk_gerencia_gerente FOREIGN KEY(gerente_id) REFERENCES Funcionario(id),
@@ -58,10 +57,11 @@ CREATE TABLE Gerencia(
 );
 
 CREATE TABLE Solicitacao(
-    data_solicitacao DATE DEFAULT SYSDATE PRIMARY KEY,
+    data_solicitacao DATE,
     servico_id INT,
     familiar_id INT,
     funcionario_id INT,
+    PRIMARY KEY(familiar_id, funcionario_id, data_solicitacao),
     status_solicitacao VARCHAR2(18) DEFAULT 'Pagamento Pendente',
     CHECK(status_solicitacao IN ('Pagamento Pendente', 'Em Andamento', 'Concluida', 'Cancelada')),
     CONSTRAINT fk_solicitacao_servico FOREIGN KEY(servico_id) REFERENCES ServicoFunerario(id),
