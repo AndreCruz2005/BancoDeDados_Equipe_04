@@ -21,7 +21,7 @@ CREATE TABLE Falecido(
     id INT PRIMARY KEY,
     data_falecimento DATE,
     causa_obito VARCHAR2(50),
-    numero_documento_obito VARCHAR2(50) UNIQUE,
+    numero_documento_obito VARCHAR2(32) UNIQUE,
     CONSTRAINT fk_falecido_pessoa FOREIGN KEY(id) REFERENCES Pessoa(id)
 );
 
