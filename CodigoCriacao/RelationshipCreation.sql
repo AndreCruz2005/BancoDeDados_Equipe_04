@@ -76,5 +76,5 @@ CREATE TABLE Utiliza(
     data_ocorrencia DATE,
     PRIMARY KEY(material_id, manutencao_id, data_ocorrencia),
     CONSTRAINT fk_utiliza_material FOREIGN KEY(material_id) REFERENCES Material(id),
-    CONSTRAINT fk_utiliza_ocorrencia FOREIGN KEY(manutencao_id, data_ocorrencia) REFERENCES OcorrenciaManutecao(manutencao_id, data_ocorrencia)
+    CONSTRAINT fk_utiliza_ocorrencia FOREIGN KEY(manutencao_id, data_ocorrencia) REFERENCES OcorrenciaManutencao(manutencao_id, data_ocorrencia)
 );

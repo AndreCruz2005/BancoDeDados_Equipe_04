@@ -44,11 +44,22 @@ DECLARE
 
     FUNCTION gerar_cpf RETURN VARCHAR2 IS
         v_result VARCHAR2(11);
+        v_exists INT;
     BEGIN
-        v_result := '';
-        FOR i IN 1..11 LOOP
-            v_result := v_result || TRUNC(DBMS_RANDOM.VALUE(0, 10));
+        LOOP
+            v_result := '';
+            FOR i IN 1..11 LOOP
+                v_result := v_result || TRUNC(DBMS_RANDOM.VALUE(0, 10));
+            END LOOP;
+                
+            SELECT COUNT(*)
+            INTO v_exists
+            FROM Pessoa
+            WHERE cpf = v_result;
+
+            EXIT WHEN v_exists = 0;
         END LOOP;
+
         RETURN v_result;
     END;
 
@@ -77,17 +88,13 @@ BEGIN
             --1905-2025--
             v_data_nascimento := TO_DATE('01/01/1905', 'DD/MM/YYYY') + TRUNC(DBMS_RANDOM.VALUE(0, 365*120));
         END IF;
+       
+        INSERT INTO Pessoa(id, nome, cpf, data_nascimento, sexo, tipo)
+        VALUES (global_id_seq.NEXTVAL, v_nome_completo, v_cpf, v_data_nascimento, v_sexo, v_tipo);
 
-        BEGIN
-            INSERT INTO Pessoa(id, nome, cpf, data_nascimento, sexo, tipo)
-            VALUES (global_id_seq.NEXTVAL, v_nome_completo, v_cpf, v_data_nascimento, v_sexo, v_tipo);
-        EXCEPTION
-            WHEN DUP_VAL_ON_INDEX THEN
-                -- CPF duplicado, tenta novamente com outro CPF
-                i := i - 1; -- Decrementa o contador para tentar novamente
-        END;
     END LOOP;
 END;
+/
 
 -- POPULAR FUNCIONARIOS BEGIN --
 
@@ -123,7 +130,7 @@ BEGIN
         VALUES (f.id, v_data_contratacao, v_funcao, v_salario);
     END LOOP;
 END;
-
+/
 -- POPULAR FUNCIONARIOS END --
 
 -- POPULAR FALECIDOS BEGIN --
@@ -139,12 +146,17 @@ DECLARE
     );
 
     v_causa_obito VARCHAR2(50);
-    v_numero_documento_obito VARCHAR2(50);
+    v_numero_documento_obito VARCHAR2(32);
     v_data_falecimento DATE;
 
+    CURSOR c_falecidos IS
+        SELECT id, data_nascimento FROM Pessoa
+        WHERE tipo = 'Falecido'
+          AND id NOT IN (SELECT id FROM Falecido);
+
     FUNCTION gerar_doc_obito RETURN VARCHAR2 IS
-        v_result VARCHAR2(50);
-        v_exists;
+        v_result VARCHAR2(32);
+        v_exists INT;
     BEGIN
         LOOP
             v_result := '';
@@ -163,7 +175,7 @@ DECLARE
     END;
 
     FUNCTION gerar_falecimento(p_data_nascimento IN DATE) RETURN DATE IS
-        v_random_age INTEGER;
+        v_random_age INT;
         v_death_date DATE;
         v_today DATE := TRUNC(SYSDATE);
     BEGIN
@@ -174,11 +186,6 @@ DECLARE
         END LOOP;
         RETURN v_death_date;
     END;
-
-    CURSOR c_falecidos IS
-        SELECT id, data_nascimento FROM Pessoa
-        WHERE tipo = 'Falecido'
-          AND id NOT IN (SELECT id FROM Falecido);
 BEGIN
     FOR f IN c_falecidos LOOP
         v_causa_obito := v_causas_morte(TRUNC(DBMS_RANDOM.VALUE(1, v_causas_morte.COUNT + 1)));
@@ -189,7 +196,7 @@ BEGIN
         VALUES (f.id, v_data_falecimento, v_causa_obito, v_numero_documento_obito);
     END LOOP;
 END;
-
+/
 -- POPULAR FALECIDOS END --
 
 -- POPULAR FAMILIARES BEGIN --
@@ -205,10 +212,179 @@ BEGIN
         VALUES (f.id);
     END LOOP;
 END;
-
+/
 -- POPULAR FAMILIARES END --
 
 ---- POPULAR PESSOAS END ----
 
 ---- POPULAR ENDEREÇOS BEGIN ----
+
+DECLARE
+    v_estados SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+        'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+        'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+        'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+    );
+
+    v_cidades SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+        'Rio Branco',     
+        'Maceió',        
+        'Macapá',        
+        'Manaus',        
+        'Salvador',       
+        'Fortaleza',      
+        'Brasília',      
+        'Vitória',     
+        'Goiânia',      
+        'São Luís',       
+        'Cuiabá',        
+        'Campo Grande',  
+        'Belo Horizonte',
+        'Belém',         
+        'João Pessoa',    
+        'Curitiba',      
+        'Recife',       
+        'Teresina',       
+        'Rio de Janeiro', 
+        'Natal',         
+        'Porto Alegre',   
+        'Porto Velho',    
+        'Boa Vista',      
+        'Florianópolis',  
+        'São Paulo',      
+        'Aracaju',        
+        'Palmas'          
+    );
+
+    v_bairros SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+        'Vila da Paz Eterna',
+        'Jardim dos Lamentos',
+        'Vale do Silêncio',
+        'Colina do Repouso',
+        'Bosque da Saudade',
+        'Morada Final',
+        'Parque das Almas',
+        'Vila Sepulcral',
+        'Bairro Memorial',
+        'Horizonte do Crepúsculo'
+    );
+
+    v_ruas SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+        'Rua do Descanso',
+        'Avenida das Almas',
+        'Travessa do Luto',
+        'Rua do Adeus',
+        'Alameda dos Finados',
+        'Rua da Última Jornada',
+        'Travessa do Silêncio Eterno',
+        'Rua do Jazigo',
+        'Avenida da Saudade',
+        'Rua do Cemitério'
+    );
+
+    v_cep VARCHAR2(8);
+    v_estado CHAR(2);
+    v_cidade VARCHAR2(50);
+    v_bairro VARCHAR2(50);
+    v_rua VARCHAR2(100);
+
+    -- INDEXES
+    v_estado_idx INT;
+    v_bairro_idx INT;
+
+    FUNCTION gerar_cep RETURN VARCHAR2 IS
+        v_result VARCHAR2(8);
+        v_exists INT;
+    BEGIN
+        LOOP
+            v_result := '';    
+            FOR i IN 1..8 LOOP
+                v_result := v_result || TRUNC(DBMS_RANDOM.VALUE(0, 10));
+            END LOOP;
+
+            SELECT COUNT(*)
+            INTO v_exists
+            FROM Endereco
+            WHERE cep = v_result;
+
+            EXIT WHEN v_exists = 0;
+        END LOOP;
+
+        RETURN v_result;
+    END;
+
+BEGIN
+    FOR i IN 1..50 LOOP
+        v_estado_idx := TRUNC(DBMS_RANDOM.VALUE(1, 28));
+        v_bairro_idx := TRUNC(DBMS_RANDOM.VALUE(1, 11));
+
+        v_cep := gerar_cep;
+        v_estado := v_estados(v_estado_idx);
+        v_cidade := v_cidades(v_estado_idx);
+        v_bairro := v_bairros(v_bairro_idx);
+        v_rua := v_ruas(v_bairro_idx);
+
+        INSERT INTO Endereco(cep, estado, cidade, bairro, rua) 
+        VALUES (v_cep, v_estado, v_cidade, v_bairro, v_rua);
+    END LOOP;
+END;
+/
 ---- POPULAR ENDEREÇOS END ----
+
+---- POPULAR TELEFONES BEGIN ----
+
+DECLARE
+    v_numero VARCHAR2(13);
+
+    FUNCTION gerar_telefone RETURN VARCHAR2 IS
+        v_result VARCHAR2(13) := '55';
+        v_exists INT;
+    BEGIN
+        LOOP    
+            FOR i IN 1..11 LOOP
+                v_result := v_result || TRUNC(DBMS_RANDOM.VALUE(0, 10));
+            END LOOP;
+
+            SELECT COUNT(*)
+            INTO v_exists
+            FROM Telefone
+            WHERE numero = v_result;
+
+            EXIT WHEN v_exists = 0;
+        END LOOP;
+
+        RETURN v_result;
+    END;
+
+BEGIN
+    FOR i IN 1..70 LOOP
+        v_numero := gerar_telefone;
+        INSERT INTO Telefone(numero) VALUES (v_numero);
+    END LOOP;
+END;
+/
+---- POPULAR TELEFONES END ----
+
+---- POPULAR JAZIGOS BEGIN ----
+
+---- POPULAR JAZIGOS END ----
+
+---- POPULAR SERVIÇOS FUNERARIOS BEGIN ----
+
+---- POPULAR SERVIÇOS FUNERARIOS END ----
+
+---- POPULAR RESPONSABILIDADE JAZIGOS BEGIN ----
+
+---- POPULAR RESPONSABILIDADE JAZIGOS END ----
+
+---- POPULAR MANUTENÇÕES JAZIGOS BEGIN ----
+
+---- POPULAR MANUTENÇÕES JAZIGOS END ----
+
+---- POPULAR OCORRÊNCIAS MANUTENÇÕES BEGIN ----
+
+---- POPULAR OCORRÊNCIAS MANUTENÇÕES END ----
+
+---- POPULAR MATERIAIS BEGIN ----
+
+---- POPULAR MATERIAIS END ----

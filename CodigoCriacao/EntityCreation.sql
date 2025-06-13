@@ -81,7 +81,7 @@ CREATE TABLE ManutencaoJazigo(
     CONSTRAINT fk_manutencao_funcionario FOREIGN KEY(funcionario_id) REFERENCES Funcionario(id)
 );
 
-CREATE TABLE OcorrenciaManutecao(
+CREATE TABLE OcorrenciaManutencao(
     manutencao_id INT,
     data_ocorrencia DATE DEFAULT SYSDATE,
     descricao VARCHAR2(500),
