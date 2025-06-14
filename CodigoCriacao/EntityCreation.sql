@@ -5,7 +5,7 @@ CREATE TABLE Pessoa(
     data_nascimento DATE,
     sexo VARCHAR2(9),
     tipo VARCHAR2(11),
-    CHECK(sexo IN ('Masculino', 'Feminino', 'Outro')),
+    CHECK(sexo IN ('Masculino', 'Feminino')),
     CHECK(tipo IN ('Familiar', 'Funcionario', 'Falecido'))
 );
 

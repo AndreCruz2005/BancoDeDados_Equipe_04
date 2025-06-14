@@ -7,17 +7,16 @@ CREATE SEQUENCE global_id_seq
 ---- POPULAR PESSOAS BEGIN ----
 
 DECLARE
-    v_nomes SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
-        'Ana', 'Carlos', 'Fernanda', 'João', 'Mariana',
-        'Lucas', 'Beatriz', 'Pedro', 'Juliana', 'Rafael',
-        'Camila', 'Bruno', 'Larissa', 'Diego', 'Patrícia',
-        'Rodrigo', 'Letícia', 'Felipe', 'Tatiane', 'Gustavo',
-        'Vanessa', 'Marcelo', 'Aline', 'Eduardo', 'Renata',
-        'André', 'Sabrina', 'Thiago', 'Paula', 'Vinícius',
-        'Natália', 'Fábio', 'Isabela', 'Daniel', 'Simone',
-        'Leonardo', 'Carla', 'Mateus', 'Bianca', 'Henrique',
-        'Gabriela', 'Murilo', 'Alessandra', 'Vitor', 'Elaine',
-        'Igor', 'Luciana', 'Caio', 'Roberta', 'Getúlio'
+    v_nomes_masculinos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+        'João', 'Pedro', 'Lucas', 'Mateus', 'Gabriel',
+        'Felipe', 'Guilherme', 'Bruno', 'Thiago', 'Leonardo',
+        'Carlos', 'José', 'Antonio', 'Rafael', 'Ricardo', 'Getúlio'
+    );
+
+    v_nomes_femininos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+        'Maria', 'Ana', 'Juliana', 'Camila', 'Fernanda',
+        'Larissa', 'Patrícia', 'Aline', 'Beatriz', 'Mariana',
+        'Luana', 'Gabriela', 'Carla', 'Letícia', 'Vanessa'
     );
 
     v_sobrenomes SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
@@ -36,7 +35,7 @@ DECLARE
     v_sexos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Masculino', 'Feminino');
     v_tipos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Familiar', 'Funcionario', 'Falecido');
 
-    v_nome_completo VARCHAR2(200);
+    v_nome_completo VARCHAR2(100);
     v_cpf  VARCHAR2(11);
     v_data_nascimento DATE;
     v_sexo VARCHAR2(9);
@@ -65,12 +64,20 @@ DECLARE
 
 BEGIN
     FOR i IN 1..100 LOOP
-        -- Gera nome completo aleatório
-        v_nome_completo := v_nomes(TRUNC(DBMS_RANDOM.VALUE(1, v_nomes.COUNT + 1))) || ' ' ||
-                           v_sobrenomes(TRUNC(DBMS_RANDOM.VALUE(1, v_sobrenomes.COUNT + 1)));
-
+        -- Gera sexo e tipo
         v_sexo := v_sexos(TRUNC(DBMS_RANDOM.VALUE(1, v_sexos.COUNT + 1)));
         v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
+
+        -- Gera nome completo aleatório
+        CASE
+            WHEN v_sexo = 'Masculino' THEN
+                v_nome_completo := v_nomes_masculinos(TRUNC(DBMS_RANDOM.VALUE(1, v_nomes_masculinos.COUNT + 1))) || ' ' ||
+                v_sobrenomes(TRUNC(DBMS_RANDOM.VALUE(1, v_sobrenomes.COUNT + 1)));
+
+            WHEN v_sexo = 'Feminino' THEN
+                v_nome_completo := v_nomes_femininos(TRUNC(DBMS_RANDOM.VALUE(1, v_nomes_femininos.COUNT + 1))) || ' ' ||
+                v_sobrenomes(TRUNC(DBMS_RANDOM.VALUE(1, v_sobrenomes.COUNT + 1)));
+        END CASE;
 
         IF v_tipo = 'Falecido' THEN
             v_cpf := NULL;
@@ -85,8 +92,8 @@ BEGIN
             --1950-2007--
             v_data_nascimento := TO_DATE('01/01/1950', 'DD/MM/YYYY') + TRUNC(DBMS_RANDOM.VALUE(0, 365*57));
         ELSE
-            --1905-2025--
-            v_data_nascimento := TO_DATE('01/01/1905', 'DD/MM/YYYY') + TRUNC(DBMS_RANDOM.VALUE(0, 365*120));
+            --1910-2007--
+            v_data_nascimento := TO_DATE('01/01/1910', 'DD/MM/YYYY') + TRUNC(DBMS_RANDOM.VALUE(0, 365*97));
         END IF;
        
         INSERT INTO Pessoa(id, nome, cpf, data_nascimento, sexo, tipo)
@@ -100,7 +107,7 @@ END;
 
 DECLARE
     v_funcoes SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
-    'Coveiro', 'Administrador do Cemitério','Recepcionista', 'Agente Funerário', 'Jardineiro','Eletricista',
+    'Coveiro','Recepcionista', 'Agente Funerário', 'Jardineiro','Eletricista',
     'Encanador', 'Pedreiro', 'Zelador', 'Contador', 'Gerente de Vendas de Jazigos', 'Arquivista', 
     'Segurança', 'Motorista', 'Conselheiro de Luto');
 
@@ -367,24 +374,91 @@ END;
 
 ---- POPULAR JAZIGOS BEGIN ----
 
+DECLARE
+    v_tipos      SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Simples','Duplo','Familiar','Gaveta');
+    v_quadra     INT;
+    v_fila       INT;
+    v_numero     INT;
+    v_capacidade INT;
+    v_tipo       VARCHAR2(20);
+BEGIN
+  FOR q IN 1..4 LOOP
+    v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
+    v_quadra := q;
+
+    FOR f IN 1..5 LOOP
+      v_fila := f;
+
+      FOR n IN 1..10 LOOP
+        v_numero := n;
+
+        CASE
+          WHEN v_tipo = 'Duplo' THEN
+            v_capacidade := 2;
+          WHEN v_tipo = 'Familiar' THEN
+            v_capacidade := TRUNC(DBMS_RANDOM.VALUE(3, 11));
+          ELSE
+            v_capacidade := 1;
+        END CASE;
+
+        INSERT INTO Jazigo(id, fila, quadra, numero, capacidade, tipo)
+        VALUES (global_id_seq.NEXTVAL, v_fila, v_quadra, v_numero, v_capacidade, v_tipo);
+      END LOOP;
+    END LOOP;
+  END LOOP;
+END;
+/
+
 ---- POPULAR JAZIGOS END ----
-
----- POPULAR SERVIÇOS FUNERARIOS BEGIN ----
-
----- POPULAR SERVIÇOS FUNERARIOS END ----
-
----- POPULAR RESPONSABILIDADE JAZIGOS BEGIN ----
-
----- POPULAR RESPONSABILIDADE JAZIGOS END ----
-
----- POPULAR MANUTENÇÕES JAZIGOS BEGIN ----
-
----- POPULAR MANUTENÇÕES JAZIGOS END ----
-
----- POPULAR OCORRÊNCIAS MANUTENÇÕES BEGIN ----
-
----- POPULAR OCORRÊNCIAS MANUTENÇÕES END ----
 
 ---- POPULAR MATERIAIS BEGIN ----
 
+DECLARE
+    v_materiais SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+    'Caixão',
+    'Urna Funerária',
+    'Cimento',
+    'Areia',
+    'Tijolo',
+    'Mármore',
+    'Granito',
+    'Placa de Identificação',
+    'Flores Artificiais',
+    'Velas',
+    'Lona de Cobertura',
+    'Pá',
+    'Carrinho de Transporte',
+    'Uniforme de Funcionário',
+    'Luvas de Borracha');
+
+    v_descricoes SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
+    'Caixão de madeira usado para sepultamento tradicional',
+    'Recipiente usado para armazenar cinzas em cremações',
+    'Usado em obras de jazigos e sepulturas',
+    'Componente básico para mistura de concreto',
+    'Material de alvenaria para estruturas de túmulos',
+    'Revestimento decorativo para túmulos e lápides',
+    'Pedra resistente utilizada na construção de jazigos',
+    'Placa metálica ou de pedra com dados do falecido',
+    'Flores decorativas para ornamentar túmulos',
+    'Velas utilizadas em cerimônias e homenagens',
+    'Proteção contra chuva durante cerimônias',
+    'Ferramenta de escavação para sepulturas',
+    'Carrinho usado para transporte de corpos e materiais',
+    'Roupas padronizadas para equipe do cemitério',
+    'Luvas para proteção durante manuseio de materiais');
+
+    v_nome VARCHAR2(100);
+    v_descricao VARCHAR2(500);
+
+BEGIN
+    FOR i in 1..v_materiais.COUNT LOOP
+        v_nome := v_materiais(i);
+        v_descricao := v_descricoes(i);
+
+        INSERT INTO Material(id, nome, descricao)
+        VALUES (global_id_seq.NEXTVAL, v_nome, v_descricao);
+    END LOOP;
+END;
+/ 
 ---- POPULAR MATERIAIS END ----
