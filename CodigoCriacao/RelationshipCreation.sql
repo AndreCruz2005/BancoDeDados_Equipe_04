@@ -58,7 +58,7 @@ CREATE TABLE Gerencia(
 
 CREATE TABLE Solicitacao(
     data_solicitacao DATE,
-    servico_id INT,
+    servico_id INT UNIQUE,
     familiar_id INT,
     funcionario_id INT,
     PRIMARY KEY(familiar_id, funcionario_id, data_solicitacao),

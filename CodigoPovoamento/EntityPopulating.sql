@@ -63,18 +63,18 @@ DECLARE
     END;
 
 BEGIN
-    FOR i IN 1..100 LOOP
+    FOR i IN 1..200 LOOP
         -- Gera sexo e tipo
         v_sexo := v_sexos(TRUNC(DBMS_RANDOM.VALUE(1, v_sexos.COUNT + 1)));
         v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
 
         -- Gera nome completo aleatório
-        CASE
-            WHEN v_sexo = 'Masculino' THEN
+        CASE v_sexo
+            WHEN 'Masculino' THEN
                 v_nome_completo := v_nomes_masculinos(TRUNC(DBMS_RANDOM.VALUE(1, v_nomes_masculinos.COUNT + 1))) || ' ' ||
                 v_sobrenomes(TRUNC(DBMS_RANDOM.VALUE(1, v_sobrenomes.COUNT + 1)));
 
-            WHEN v_sexo = 'Feminino' THEN
+            WHEN 'Feminino' THEN
                 v_nome_completo := v_nomes_femininos(TRUNC(DBMS_RANDOM.VALUE(1, v_nomes_femininos.COUNT + 1))) || ' ' ||
                 v_sobrenomes(TRUNC(DBMS_RANDOM.VALUE(1, v_sobrenomes.COUNT + 1)));
         END CASE;
@@ -184,14 +184,11 @@ DECLARE
     FUNCTION gerar_falecimento(p_data_nascimento IN DATE) RETURN DATE IS
         v_random_age INT;
         v_death_date DATE;
-        v_today DATE := TRUNC(SYSDATE);
     BEGIN
-        LOOP
-            v_random_age := TRUNC(DBMS_RANDOM.VALUE(0, 111));
-            v_death_date := p_data_nascimento + v_random_age * 365;
-            EXIT WHEN v_death_date <= v_today;
-        END LOOP;
-        RETURN v_death_date;
+        
+        v_random_age := TRUNC(DBMS_RANDOM.VALUE(0, 111));
+        v_death_date := p_data_nascimento + v_random_age * 365;
+        RETURN LEAST(SYSDATE, v_death_date);
     END;
 BEGIN
     FOR f IN c_falecidos LOOP
@@ -392,10 +389,10 @@ BEGIN
       FOR n IN 1..10 LOOP
         v_numero := n;
 
-        CASE
-          WHEN v_tipo = 'Duplo' THEN
+        CASE v_tipo
+          WHEN 'Duplo' THEN
             v_capacidade := 2;
-          WHEN v_tipo = 'Familiar' THEN
+          WHEN 'Familiar' THEN
             v_capacidade := TRUNC(DBMS_RANDOM.VALUE(3, 11));
           ELSE
             v_capacidade := 1;
