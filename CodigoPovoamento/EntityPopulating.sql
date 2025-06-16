@@ -33,7 +33,7 @@ DECLARE
     );
 
     v_sexos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Masculino', 'Feminino');
-    v_tipos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Familiar', 'Funcionario', 'Falecido');
+    v_tipos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Familiar', 'Familiar', 'Funcionario', 'Falecido', 'Falecido', 'Falecido');
 
     v_nome_completo VARCHAR2(100);
     v_cpf  VARCHAR2(11);
@@ -63,7 +63,7 @@ DECLARE
     END;
 
 BEGIN
-    FOR i IN 1..200 LOOP
+    FOR i IN 1..400 LOOP
         -- Gera sexo e tipo
         v_sexo := v_sexos(TRUNC(DBMS_RANDOM.VALUE(1, v_sexos.COUNT + 1)));
         v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
@@ -109,7 +109,7 @@ DECLARE
     v_funcoes SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
     'Coveiro','Recepcionista', 'Agente Funerário', 'Jardineiro','Eletricista',
     'Encanador', 'Pedreiro', 'Zelador', 'Contador', 'Gerente de Vendas de Jazigos', 'Arquivista', 
-    'Segurança', 'Motorista', 'Conselheiro de Luto');
+    'Segurança', 'Motorista');
 
     v_salario NUMBER(8, 2);
     v_funcao VARCHAR2(50);
@@ -125,13 +125,7 @@ BEGIN
         v_salario := ROUND(DBMS_RANDOM.VALUE(1600, 20000), 2);    
         v_funcao := v_funcoes(TRUNC(DBMS_RANDOM.VALUE(1, v_funcoes.COUNT + 1)));
 
-        IF f.data_nascimento >= TO_DATE('01/01/2000', 'DD/MM/YYYY') THEN
-            v_data_contratacao := TRUNC(SYSDATE - DBMS_RANDOM.VALUE(0, 365));
-        ELSIF f.data_nascimento >= TO_DATE('01/01/1990', 'DD/MM/YYYY') THEN
-            v_data_contratacao := TRUNC(SYSDATE - DBMS_RANDOM.VALUE(0, 365*7));
-        ELSE
-            v_data_contratacao := TRUNC(SYSDATE - DBMS_RANDOM.VALUE(0, 365*14));
-        END IF;
+        v_data_contratacao := f.data_nascimento + DBMS_RANDOM.VALUE(18*365.25, SYSDATE-f.data_nascimento);
 
         INSERT INTO Funcionario(id, data_contratacao, funcao, salario)
         VALUES (f.id, v_data_contratacao, v_funcao, v_salario);
@@ -182,12 +176,9 @@ DECLARE
     END;
 
     FUNCTION gerar_falecimento(p_data_nascimento IN DATE) RETURN DATE IS
-        v_random_age INT;
         v_death_date DATE;
     BEGIN
-        
-        v_random_age := TRUNC(DBMS_RANDOM.VALUE(0, 111));
-        v_death_date := p_data_nascimento + v_random_age * 365;
+        v_death_date := p_data_nascimento + DBMS_RANDOM.VALUE(0, 111) * 365;
         RETURN LEAST(SYSDATE, v_death_date);
     END;
 BEGIN
@@ -318,7 +309,7 @@ DECLARE
     END;
 
 BEGIN
-    FOR i IN 1..50 LOOP
+    FOR i IN 1..80 LOOP
         v_estado_idx := TRUNC(DBMS_RANDOM.VALUE(1, 28));
         v_bairro_idx := TRUNC(DBMS_RANDOM.VALUE(1, 11));
 
@@ -361,7 +352,7 @@ DECLARE
     END;
 
 BEGIN
-    FOR i IN 1..70 LOOP
+    FOR i IN 1..100 LOOP
         v_numero := gerar_telefone;
         INSERT INTO Telefone(numero) VALUES (v_numero);
     END LOOP;
@@ -380,15 +371,12 @@ DECLARE
     v_tipo       VARCHAR2(20);
 BEGIN
   FOR q IN 1..4 LOOP
-    v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
-    v_quadra := q;
-
     FOR f IN 1..5 LOOP
-      v_fila := f;
-
-      FOR n IN 1..10 LOOP
+      FOR n IN 1..6 LOOP
+        v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
+        v_quadra := q;
         v_numero := n;
-
+        v_fila := f;
         CASE v_tipo
           WHEN 'Duplo' THEN
             v_capacidade := 2;

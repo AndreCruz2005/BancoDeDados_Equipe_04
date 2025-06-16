@@ -14,7 +14,7 @@ CREATE TABLE Funcionario(
     data_contratacao DATE DEFAULT SYSDATE,
     funcao VARCHAR2(50),
     salario NUMBER(8, 2),
-    CONSTRAINT fk_funcionario_pessoa FOREIGN KEY(id) REFERENCES Pessoa(id)
+    CONSTRAINT fk_funcionario_pessoa FOREIGN KEY(id) REFERENCES Pessoa(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Falecido(
@@ -22,12 +22,12 @@ CREATE TABLE Falecido(
     data_falecimento DATE,
     causa_obito VARCHAR2(50),
     numero_documento_obito VARCHAR2(32) UNIQUE,
-    CONSTRAINT fk_falecido_pessoa FOREIGN KEY(id) REFERENCES Pessoa(id)
+    CONSTRAINT fk_falecido_pessoa FOREIGN KEY(id) REFERENCES Pessoa(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Familiar(
     id INT PRIMARY KEY,
-    CONSTRAINT fk_familiar_pessoa FOREIGN KEY(id) REFERENCES Pessoa(id)
+    CONSTRAINT fk_familiar_pessoa FOREIGN KEY(id) REFERENCES Pessoa(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Endereco(
@@ -66,8 +66,8 @@ CREATE TABLE ResponsabilidadeJazigo(
     aluguel NUMBER(8, 2),
     data_inicio DATE DEFAULT SYSDATE,
     data_fim DATE,
-    CONSTRAINT fk_responsabilidade_jazigo FOREIGN KEY(jazigo_id) REFERENCES Jazigo(id),
-    CONSTRAINT fk_responsabilidade_familiar FOREIGN KEY(responsavel_id) REFERENCES Familiar(id)
+    CONSTRAINT fk_responsabilidade_jazigo FOREIGN KEY(jazigo_id) REFERENCES Jazigo(id) ON DELETE CASCADE,
+    CONSTRAINT fk_responsabilidade_familiar FOREIGN KEY(responsavel_id) REFERENCES Familiar(id) ON DELETE CASCADE
 );
 
 CREATE TABLE ManutencaoJazigo(
@@ -77,7 +77,7 @@ CREATE TABLE ManutencaoJazigo(
     data_inicio DATE DEFAULT SYSDATE,
     data_fim DATE,
     motivo VARCHAR2(500),
-    CONSTRAINT fk_manutencao_jazigo FOREIGN KEY(jazigo_id) REFERENCES Jazigo(id),
+    CONSTRAINT fk_manutencao_jazigo FOREIGN KEY(jazigo_id) REFERENCES Jazigo(id) ON DELETE CASCADE,
     CONSTRAINT fk_manutencao_funcionario FOREIGN KEY(funcionario_id) REFERENCES Funcionario(id)
 );
 
@@ -86,7 +86,7 @@ CREATE TABLE OcorrenciaManutencao(
     data_ocorrencia DATE DEFAULT SYSDATE,
     descricao VARCHAR2(500),
     PRIMARY KEY(manutencao_id, data_ocorrencia),
-    CONSTRAINT fk_ocorrencia_manutencao FOREIGN KEY(manutencao_id) REFERENCES ManutencaoJazigo(id)
+    CONSTRAINT fk_ocorrencia_manutencao FOREIGN KEY(manutencao_id) REFERENCES ManutencaoJazigo(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Material(

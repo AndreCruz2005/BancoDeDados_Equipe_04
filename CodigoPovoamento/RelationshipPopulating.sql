@@ -6,11 +6,14 @@ DECLARE
 
     v_numero VARCHAR2(13);
     v_cep VARCHAR2(8);
+
+    v_numero_endereco INT;
+    v_complemento VARCHAR2(50); 
 BEGIN
 
     FOR p IN c_pessoas_vivas LOOP
 
-        -- Popular telefone
+        -- Popular telefone aleatório
         SELECT numero
         INTO v_numero 
         FROM (
@@ -22,7 +25,7 @@ BEGIN
         INSERT INTO PessoaTelefone(numero, pessoa_id) 
         VALUES (v_numero, p.id);
         
-        -- Popular Endereço
+        -- Popular endereço aleatório
         SELECT cep
         INTO v_cep 
         FROM (
@@ -31,8 +34,18 @@ BEGIN
         )
         WHERE ROWNUM = 1;
 
-        INSERT INTO PessoaEndereco(cep, pessoa_id) 
-        VALUES (v_cep, p.id);
+        -- Gerar número do endereço entre 1 e 1000
+        v_numero_endereco := TRUNC(DBMS_RANDOM.VALUE(1, 1001));
+
+        -- Gerar complemento opcional
+        IF DBMS_RANDOM.VALUE(0, 1) < 0.5 THEN
+            v_complemento := '';
+        ELSE
+            v_complemento := 'Apt ' || TRUNC(DBMS_RANDOM.VALUE(1, 1001));
+        END IF;
+
+        INSERT INTO PessoaEndereco(cep, pessoa_id, numero, complemento) 
+        VALUES (v_cep, p.id, v_numero_endereco, v_complemento);
     END LOOP;   
 END;
 /
@@ -52,47 +65,35 @@ DECLARE
     v_cursor_idx INT := 0;
 
     v_data_exumacao DATE;
-    v_funcionario_id INT;
-    v_jazigo_id INT;
     v_motivo VARCHAR2(500);
 
-    CURSOR c_falecidos IS
-        SELECT id, data_falecimento
-        FROM Falecido
+    v_funcionario_data_contrato DATE;
+    CURSOR c_dados_exumacao IS
+        SELECT f.id, f.data_falecimento,
+        ( SELECT id FROM ( SELECT id FROM Funcionario ORDER BY DBMS_RANDOM.VALUE ) WHERE ROWNUM = 1) as funcionario_id,
+        ( SELECT id FROM ( SELECT id FROM Jazigo ORDER BY DBMS_RANDOM.VALUE ) WHERE ROWNUM = 1) as jazigo_id
+        FROM Falecido f
         WHERE data_falecimento < SYSDATE - 5*365;
 
-    -- Função para gerar data de exumação
-    FUNCTION gerar_data_exumacao(v_data_morte IN DATE) RETURN DATE IS
-        v_result DATE; 
-    BEGIN
-        v_result := SYSDATE - TRUNC(DBMS_RANDOM.VALUE(1, 365 * 30)); 
-        RETURN GREATEST(v_result, v_data_morte+7);
-    END;
 BEGIN
-    FOR f IN c_falecidos LOOP
+    FOR de IN c_dados_exumacao LOOP
         v_cursor_idx := v_cursor_idx + 1;
         EXIT WHEN v_cursor_idx > 10;
 
-        v_data_exumacao := gerar_data_exumacao(f.data_falecimento);
+        SELECT data_contratacao INTO v_funcionario_data_contrato FROM Funcionario WHERE id = de.funcionario_id;
+
+        -- Escolhe o mais recente entre uma data aletória, 7 dias após o falecimento e a contratação do funcionário selecionado
+        v_data_exumacao := GREATEST(
+            de.data_falecimento+7, 
+            SYSDATE-DBMS_RANDOM.VALUE(0, 30*365.25),
+            v_funcionario_data_contrato
+        );
+
         v_motivo := v_motivos(TRUNC(DBMS_RANDOM.VALUE(1, v_motivos.COUNT + 1)));
-
-        SELECT id 
-        INTO v_funcionario_id 
-        FROM (
-            SELECT id FROM Funcionario 
-            ORDER BY DBMS_RANDOM.VALUE
-        ) WHERE ROWNUM = 1; 
-
-        SELECT id 
-        INTO v_jazigo_id 
-        FROM (
-            SELECT id FROM Jazigo 
-            ORDER BY DBMS_RANDOM.VALUE
-        ) WHERE ROWNUM = 1; 
 
         BEGIN
             INSERT INTO Exumacao(falecido_id, jazigo_id, funcionario_id, data, motivo)
-            VALUES (f.id, v_jazigo_id, v_funcionario_id, v_data_exumacao, v_motivo);
+            VALUES (de.id, de.jazigo_id, de.funcionario_id, v_data_exumacao, v_motivo);
         EXCEPTION
             WHEN DUP_VAL_ON_INDEX THEN
                 NULL;
@@ -111,24 +112,30 @@ DECLARE
     v_falecido_id INT;
 
     CURSOR c_familiares IS
-        SELECT id, sexo FROM Pessoa
-        WHERE id IN (SELECT id FROM Familiar);
+        SELECT id FROM Pessoa
+        WHERE Tipo = 'Familiar';
 BEGIN
     FOR fam IN c_familiares LOOP
-        -- Seleciona um falecido aleatório para cada familiar
-        SELECT id INTO v_falecido_id
-        FROM (
-            SELECT id FROM Falecido
-            ORDER BY DBMS_RANDOM.VALUE
-        )
-        WHERE ROWNUM = 1;
+            FOR i in 1..TRUNC(DBMS_RANDOM.VALUE(1, 5)) LOOP
+                -- Seleciona um falecido aleatório para o familiar
+                SELECT id INTO v_falecido_id
+                FROM (
+                    SELECT id FROM Falecido
+                    ORDER BY DBMS_RANDOM.VALUE
+                )
+                WHERE ROWNUM = 1;
 
-        -- Escolhe tipo de parentesco
-        v_tipo := v_parentesco(TRUNC(DBMS_RANDOM.VALUE(1, v_parentesco.COUNT + 1)));
+                -- Escolhe tipo de parentesco
+                v_tipo := v_parentesco(TRUNC(DBMS_RANDOM.VALUE(1, v_parentesco.COUNT + 1)));
 
-        -- Inserção no relacionamento
-        INSERT INTO Parentesco (familiar_id, falecido_id, tipo)
-        VALUES (fam.id, v_falecido_id, v_tipo);
+                -- Inserção no relacionamento
+                BEGIN
+                    INSERT INTO Parentesco (familiar_id, falecido_id, tipo)
+                    VALUES (fam.id, v_falecido_id, v_tipo);
+                EXCEPTION
+                    WHEN DUP_VAL_ON_INDEX THEN NULL;
+                END;
+            END LOOP;
     END LOOP;
 END;
 /
@@ -139,7 +146,7 @@ DECLARE
         SELECT id FROM (
             SELECT id FROM Funcionario
             ORDER BY salario DESC
-        ) WHERE ROWNUM < 6;
+        ) WHERE ROWNUM < 10;
 
     v_gerenciado_id INT;
 BEGIN
@@ -348,6 +355,9 @@ DECLARE
     v_data          DATE;
     v_qt_exumacoes  INT;
     v_sucesso       BOOLEAN;
+    v_tipo VARCHAR2(20);
+
+    v_tipos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Definitivo', 'Temporário');
 
     CURSOR c_falecidos IS
         SELECT id, data_falecimento FROM Falecido;
@@ -359,9 +369,15 @@ BEGIN
         WHERE falecido_id = f.id;
 
         IF v_qt_exumacoes > 0 THEN 
-            v_data := LEAST(f.data_falecimento + TRUNC(DBMS_RANDOM.VALUE(1, 365*150)), SYSDATE);
+            v_data := LEAST(f.data_falecimento + DBMS_RANDOM.VALUE(1, 365*50), SYSDATE);
         ELSE 
-            v_data := LEAST(f.data_falecimento + TRUNC(DBMS_RANDOM.VALUE(1, 365)), SYSDATE);
+            v_data := LEAST(f.data_falecimento + DBMS_RANDOM.VALUE(1, 365), SYSDATE);
+        END IF;
+
+        IF SYSDATE - v_data < 365.25 THEN
+            v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
+        ELSE
+            v_tipo := 'Definitivo';
         END IF;
 
         -- Tenta encontrar um jazigo válido
@@ -373,11 +389,10 @@ BEGIN
                 SELECT id FROM Jazigo
                 ORDER BY DBMS_RANDOM.VALUE
             ) WHERE ROWNUM = 1;
-
-            -- Tenta inserir
+        
             BEGIN
-                INSERT INTO Sepultamento(falecido_id, jazigo_id, data)
-                VALUES (f.id, v_jazigo_id, v_data);
+                INSERT INTO Sepultamento(falecido_id, jazigo_id, data, tipo)
+                VALUES (f.id, v_jazigo_id, v_data, v_tipo);
                 v_sucesso := TRUE;
             EXCEPTION
                 WHEN OTHERS THEN
@@ -391,42 +406,51 @@ END;
 
 -- Gerar responsabilidade por jazigos
 DECLARE
-    v_jazigo_id INT;
     v_pagamento NUMBER(8, 2);
     v_aluguel NUMBER(8, 2);
     v_data_inicio DATE;
     v_data_fim DATE;
+
+    v_exists INT;
     v_responsavel_data_nascimento DATE;
 
-    CURSOR c_familiar_falecido IS
-        SELECT familiar_id, falecido_id
-        FROM Parentesco;
+
+    CURSOR c_jazigos_ocupados IS
+        SELECT sep.jazigo_id, sep.falecido_id, fam.id AS familiar_id
+        FROM Sepultamento sep
+        JOIN Parentesco par ON par.falecido_id = sep.falecido_id
+        JOIN Familiar fam ON fam.id = par.familiar_id;
+
 BEGIN
-    FOR ff IN c_familiar_falecido LOOP
-        SELECT jazigo_id
-        INTO v_jazigo_id
-        FROM Sepultamento
-        WHERE falecido_id = ff.falecido_id AND ROWNUM = 1;
-
-        v_pagamento := ROUND(DBMS_RANDOM.VALUE(0, 50000), 2);
-        v_aluguel := ROUND(DBMS_RANDOM.VALUE(0, 2000), 2);
-
-        SELECT data_nascimento 
-        INTO v_responsavel_data_nascimento
-        FROM Pessoa
-        WHERE id = ff.familiar_id;
-
-        v_data_inicio := LEAST(SYSDATE, v_responsavel_data_nascimento + TRUNC(DBMS_RANDOM.VALUE(19*365, 70*365)));
-
-        IF v_data_inicio > SYSDATE - 4*365 THEN
-            v_data_fim := NULL;
-        ELSE 
-            v_data_fim := LEAST(SYSDATE, v_data_inicio + TRUNC(DBMS_RANDOM.VALUE(1*365, 20*365)));
+    FOR j IN c_jazigos_ocupados LOOP
+        -- Evita duplicar responsabilidade se já existir
+        SELECT COUNT(*) INTO v_exists 
+        FROM ResponsabilidadeJazigo 
+        WHERE jazigo_id = j.jazigo_id;
+        
+        IF v_exists > 0 THEN
+            CONTINUE;
         END IF;
 
-        INSERT INTO ResponsabilidadeJazigo 
-        (jazigo_id, responsavel_id, pagamento, aluguel, data_inicio, data_fim)
-        VALUES (v_jazigo_id, ff.familiar_id, v_pagamento, v_aluguel, v_data_inicio, v_data_fim);
+        SELECT data_nascimento INTO v_responsavel_data_nascimento FROM Pessoa WHERE id = j.familiar_id;
+
+        v_pagamento := ROUND(DBMS_RANDOM.VALUE(500, 100000), 2);
+        v_aluguel := ROUND(DBMS_RANDOM.VALUE(50, 1000), 2);
+
+        -- Gera data de início com base na idade do familiar
+        v_data_inicio := LEAST(
+            SYSDATE,
+            v_responsavel_data_nascimento + DBMS_RANDOM.VALUE(19 * 365, 70 * 365)
+        );
+
+        IF DBMS_RANDOM.VALUE(0, 1) < 0.3 THEN
+            v_data_fim := NULL;
+        ELSE
+            v_data_fim := v_data_inicio + DBMS_RANDOM.VALUE(1 * 365, 20 * 365);
+        END IF;
+
+        INSERT INTO ResponsabilidadeJazigo (jazigo_id, responsavel_id, pagamento, aluguel, data_inicio, data_fim)
+        VALUES (j.jazigo_id, j.familiar_id, v_pagamento, v_aluguel, v_data_inicio, v_data_fim);
     END LOOP;
 END;
 /
