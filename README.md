@@ -17,25 +17,25 @@
 | ----------------------------------- | ------ |
 | ALTER TABLE                         |        |
 | CREATE INDEX                        |        |
-| INSERT INTO                         |        |
+| INSERT INTO                         | ✅     |
 | UPDATE                              |        |
 | DELETE                              |        |
-| SELECT-FROM-WHERE                   |        |
+| SELECT-FROM-WHERE                   | ✅     |
 | BETWEEN                             |        |
-| IN                                  |        |
+| IN                                  | ✅     |
 | LIKE                                |        |
 | IS NULL / IS NOT NULL               |        |
-| INNER JOIN                          |        |
+| INNER JOIN                          | ✅     |
 | LEFT / RIGHT / FULL OUTER JOIN      |        |
 | MAX                                 |        |
 | MIN                                 |        |
 | AVG                                 |        |
-| COUNT                               |        |
+| COUNT                               | ✅     |
 | SUBCONSULTA COM OPERADOR RELACIONAL |        |
 | SUBCONSULTA COM IN                  |        |
 | SUBCONSULTA COM ANY                 |        |
 | SUBCONSULTA COM ALL                 |        |
-| ORDER BY                            |        |
+| ORDER BY                            | ✅     |
 | GROUP BY                            |        |
 | HAVING                              |        |
 | UNION / INTERSECT / MINUS           |        |
@@ -48,21 +48,21 @@
 | ----------------------------------- | ------ |
 | USO DE RECORD                       |        |
 | USO DE TABLE (estrutura de dados)   |        |
-| BLOCO ANÔNIMO                       |        |
+| BLOCO ANÔNIMO                       | ✅     |
 | CREATE PROCEDURE                    |        |
-| CREATE FUNCTION                     |        |
+| CREATE FUNCTION                     | ✅     |
 | %TYPE                               |        |
 | %ROWTYPE                            |        |
-| IF / ELSIF                          |        |
-| CASE WHEN                           |        |
-| LOOP / EXIT WHEN                    |        |
-| WHILE LOOP                          |        |
-| FOR IN LOOP                         |        |
-| SELECT … INTO                       |        |
-| CURSOR (OPEN, FETCH, CLOSE)         |        |
-| EXCEPTION WHEN                      |        |
-| USO DE PARÂMETROS (IN, OUT, IN OUT) |        |
+| IF / ELSIF                          | ✅     |
+| CASE WHEN                           | ✅     |
+| LOOP / EXIT WHEN                    | ✅     |
+| WHILE LOOP                          | ✅     |
+| FOR IN LOOP                         | ✅     |
+| SELECT … INTO                       | ✅     |
+| CURSOR (OPEN, FETCH, CLOSE)         | ✅     |
+| EXCEPTION WHEN                      | ✅     |
+| USO DE PARÂMETROS (IN, OUT, IN OUT) | ✅     |
 | CREATE OR REPLACE PACKAGE           |        |
 | CREATE OR REPLACE PACKAGE BODY      |        |
 | CREATE OR REPLACE TRIGGER (COMANDO) |        |
-| CREATE OR REPLACE TRIGGER (LINHA)   |        |
+| CREATE OR REPLACE TRIGGER (LINHA)   | ✅     |
