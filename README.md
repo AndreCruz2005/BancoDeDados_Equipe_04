@@ -26,7 +26,7 @@
 | LIKE                                |        |
 | IS NULL / IS NOT NULL               |        |
 | INNER JOIN                          | ✅     |
-| LEFT / RIGHT / FULL OUTER JOIN      |        |
+| LEFT / RIGHT / FULL OUTER JOIN      |  ✅      |
 | MAX                                 |        |
 | MIN                                 |        |
 | AVG                                 |        |
@@ -36,8 +36,8 @@
 | SUBCONSULTA COM ANY                 |        |
 | SUBCONSULTA COM ALL                 |        |
 | ORDER BY                            | ✅     |
-| GROUP BY                            |        |
-| HAVING                              |        |
+| GROUP BY                            |   ✅     |
+| HAVING                              |   ✅     |
 | UNION / INTERSECT / MINUS           |        |
 | CREATE VIEW                         |        |
 | GRANT / REVOKE                      |        |
