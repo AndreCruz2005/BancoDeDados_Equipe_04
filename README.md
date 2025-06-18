@@ -24,20 +24,20 @@
 | BETWEEN                             |        |
 | IN                                  | ✅     |
 | LIKE                                |        |
-| IS NULL / IS NOT NULL               |        |
+| IS NULL / IS NOT NULL               | ✅     |
 | INNER JOIN                          | ✅     |
-| LEFT / RIGHT / FULL OUTER JOIN      |  ✅      |
-| MAX                                 |        |
-| MIN                                 |        |
-| AVG                                 |        |
+| LEFT / RIGHT / FULL OUTER JOIN      | ✅     |
+| MAX                                 | ✅     |
+| MIN                                 | ✅     |
+| AVG                                 | ✅     |
 | COUNT                               | ✅     |
 | SUBCONSULTA COM OPERADOR RELACIONAL |        |
 | SUBCONSULTA COM IN                  |        |
 | SUBCONSULTA COM ANY                 |        |
 | SUBCONSULTA COM ALL                 |        |
 | ORDER BY                            | ✅     |
-| GROUP BY                            |   ✅     |
-| HAVING                              |   ✅     |
+| GROUP BY                            | ✅     |
+| HAVING                              | ✅     |
 | UNION / INTERSECT / MINUS           |        |
 | CREATE VIEW                         |        |
 | GRANT / REVOKE                      |        |
@@ -46,12 +46,12 @@
 
 | Item                                | Usado? |
 | ----------------------------------- | ------ |
-| USO DE RECORD                       |        |
-| USO DE TABLE (estrutura de dados)   |        |
+| USO DE RECORD                       | ✅     |
+| USO DE TABLE (estrutura de dados)   | ✅     |
 | BLOCO ANÔNIMO                       | ✅     |
 | CREATE PROCEDURE                    |        |
 | CREATE FUNCTION                     | ✅     |
-| %TYPE                               |        |
+| %TYPE                               | ✅     |
 | %ROWTYPE                            |        |
 | IF / ELSIF                          | ✅     |
 | CASE WHEN                           | ✅     |
