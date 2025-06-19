@@ -85,3 +85,31 @@ BEGIN
 END;
 /
 
+-- Relatório sobre exumações que incluí o jazigo original e o jazigo de destino
+SELECT
+    (SELECT nome FROM Pessoa WHERE id = fal.id) AS nome,
+    (SELECT jazigo_id FROM Exumacao WHERE falecido_id = fal.id) AS jazigo_original,
+    (SELECT jazigo_id from Sepultamento WHERE falecido_id = fal.id) AS jazigo_destino
+FROM Falecido fal
+WHERE fal.id IN (
+    SELECT falecido_id
+    FROM Exumacao
+);
+
+
+--  Seleciona funcionários não coveiros que recebem menos que algum coveiro
+SELECT p.nome, f.data_contratacao, f.funcao, f.salario FROM FUNCIONARIO f
+JOIN Pessoa p ON p.id = f.id
+WHERE salario < ANY (
+    SELECT salario FROM Funcionario WHERE funcao = 'Coveiro'
+)
+AND Funcao != 'Coveiro';
+
+
+-- Seleciona jazigos com capacidade maior do que o total de sepultamentos em qualquer jazigo
+SELECT * FROM Jazigo
+WHERE capacidade > ALL (
+    SELECT COUNT(*)
+    FROM Sepultamento
+    GROUP BY jazigo_id
+);

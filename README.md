@@ -31,10 +31,10 @@
 | MIN                                 | ✅     |
 | AVG                                 | ✅     |
 | COUNT                               | ✅     |
-| SUBCONSULTA COM OPERADOR RELACIONAL |        |
-| SUBCONSULTA COM IN                  |        |
-| SUBCONSULTA COM ANY                 |        |
-| SUBCONSULTA COM ALL                 |        |
+| SUBCONSULTA COM OPERADOR RELACIONAL | ✅     |
+| SUBCONSULTA COM IN                  | ✅     |
+| SUBCONSULTA COM ANY                 | ✅     |
+| SUBCONSULTA COM ALL                 | ✅     |
 | ORDER BY                            | ✅     |
 | GROUP BY                            | ✅     |
 | HAVING                              | ✅     |

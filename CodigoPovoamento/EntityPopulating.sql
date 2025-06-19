@@ -79,22 +79,22 @@ BEGIN
                 v_sobrenomes(TRUNC(DBMS_RANDOM.VALUE(1, v_sobrenomes.COUNT + 1)));
         END CASE;
 
-        IF v_tipo = 'Falecido' THEN
+        CASE v_tipo WHEN 'Falecido' THEN
             v_cpf := NULL;
         ELSE
             v_cpf := gerar_cpf;
-        END IF;
+        END CASE;
 
-        IF v_tipo = 'Falecido' THEN
-            --1800-2025--
-            v_data_nascimento := TO_DATE('01/01/1800', 'DD/MM/YYYY') + TRUNC(DBMS_RANDOM.VALUE(0, 365*225));
-        ELSIF v_tipo = 'Funcionario' THEN
-            --1950-2007--
-            v_data_nascimento := TO_DATE('01/01/1950', 'DD/MM/YYYY') + TRUNC(DBMS_RANDOM.VALUE(0, 365*57));
-        ELSE
-            --1910-2007--
-            v_data_nascimento := TO_DATE('01/01/1910', 'DD/MM/YYYY') + TRUNC(DBMS_RANDOM.VALUE(0, 365*97));
-        END IF;
+        CASE v_tipo WHEN 'Falecido' THEN
+            -- 0 a 225 anos
+            v_data_nascimento := SYSDATE - DBMS_RANDOM.VALUE(1, 225*365.25);
+        WHEN 'Funcionario' THEN
+            -- 18 a 70 anos
+            v_data_nascimento := SYSDATE - DBMS_RANDOM.VALUE(18*365.25, 70*365.25);
+        ELSE -- v_tipo = Familiar
+            -- 18 a 110 anos
+            v_data_nascimento := SYSDATE - DBMS_RANDOM.VALUE(18*365.25, 110*365.25);
+        END CASE;
        
         INSERT INTO Pessoa(id, nome, cpf, data_nascimento, sexo, tipo)
         VALUES (global_id_seq.NEXTVAL, v_nome_completo, v_cpf, v_data_nascimento, v_sexo, v_tipo);
