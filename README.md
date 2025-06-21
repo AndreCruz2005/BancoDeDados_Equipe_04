@@ -52,7 +52,7 @@
 | CREATE PROCEDURE                    |        |
 | CREATE FUNCTION                     | ✅     |
 | %TYPE                               | ✅     |
-| %ROWTYPE                            |        |
+| %ROWTYPE                            | ✅     |
 | IF / ELSIF                          | ✅     |
 | CASE WHEN                           | ✅     |
 | LOOP / EXIT WHEN                    | ✅     |

@@ -62,38 +62,34 @@ DECLARE
         'Mudança de jazigo'
     );
 
-    v_cursor_idx INT := 0;
+    count_limit INT := 0;
 
+    v_falecido Falecido%ROWTYPE; 
+    v_jazigo_id INT;
+    v_funcionario Funcionario%ROWTYPE;
     v_data_exumacao DATE;
     v_motivo VARCHAR2(500);
 
-    v_funcionario_data_contrato DATE;
-    CURSOR c_dados_exumacao IS
-        SELECT f.id, f.data_falecimento,
-        ( SELECT id FROM ( SELECT id FROM Funcionario ORDER BY DBMS_RANDOM.VALUE ) WHERE ROWNUM = 1) as funcionario_id,
-        ( SELECT id FROM ( SELECT id FROM Jazigo ORDER BY DBMS_RANDOM.VALUE ) WHERE ROWNUM = 1) as jazigo_id
-        FROM Falecido f
-        WHERE data_falecimento < SYSDATE - 5*365;
-
 BEGIN
-    FOR de IN c_dados_exumacao LOOP
-        v_cursor_idx := v_cursor_idx + 1;
-        EXIT WHEN v_cursor_idx > 10;
+    WHILE count_limit < 10 LOOP
 
-        SELECT data_contratacao INTO v_funcionario_data_contrato FROM Funcionario WHERE id = de.funcionario_id;
+        SELECT * INTO v_falecido FROM (SELECT * FROM Falecido ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
+        SELECT * INTO v_funcionario FROM (SELECT * FROM Funcionario ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
+        SELECT id into v_jazigo_id FROM (SELECT id from Jazigo ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
 
         -- Escolhe o mais recente entre uma data aletória, 7 dias após o falecimento e a contratação do funcionário selecionado
         v_data_exumacao := GREATEST(
-            de.data_falecimento+7, 
+            v_falecido.data_falecimento+7, 
             SYSDATE-DBMS_RANDOM.VALUE(0, 30*365.25),
-            v_funcionario_data_contrato
+            v_funcionario.data_contratacao
         );
 
         v_motivo := v_motivos(TRUNC(DBMS_RANDOM.VALUE(1, v_motivos.COUNT + 1)));
 
         BEGIN
             INSERT INTO Exumacao(falecido_id, jazigo_id, funcionario_id, data, motivo)
-            VALUES (de.id, de.jazigo_id, de.funcionario_id, v_data_exumacao, v_motivo);
+            VALUES (v_falecido.id, v_jazigo_id, v_funcionario.id, v_data_exumacao, v_motivo);
+            count_limit := count_limit + 1;
         EXCEPTION
             WHEN DUP_VAL_ON_INDEX THEN
                 NULL;
