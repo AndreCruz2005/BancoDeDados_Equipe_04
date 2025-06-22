@@ -4,7 +4,22 @@ CREATE SEQUENCE global_id_seq
   NOCACHE
   NOCYCLE;
 
----- POPULAR PESSOAS BEGIN ----
+-- Packagae com procedures para gerar diversos dados aleatórios para povoamento
+
+CREATE OR REPLACE PACKAGE pkg_random_data IS
+    PROCEDURE GERAR_DATA_ALEATORIA(data_referencia IN DATE, tempo_minimo IN NUMBER, tempo_maximo IN NUMBER, v_data OUT DATE);
+END pkg_random_data;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_random_data IS
+    PROCEDURE GERAR_DATA_ALEATORIA(data_referencia IN DATE, tempo_minimo IN NUMBER, tempo_maximo IN NUMBER, v_data OUT DATE) IS 
+    BEGIN
+        v_data := data_referencia + DBMS_RANDOM.VALUE(tempo_minimo, tempo_maximo);
+    END GERAR_DATA_ALEATORIA;
+END pkg_random_data;
+/
+
+---- POVOAR PESSOAS BEGIN ----
 
 DECLARE
     v_nomes_masculinos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
@@ -27,9 +42,9 @@ DECLARE
         'Moreira', 'Teixeira', 'Campos', 'Cardoso', 'Freitas',
         'Monteiro', 'Lopes', 'Alves', 'Moura', 'Cavalcante',
         'Ramos', 'Pinto', 'Machado', 'Gonçalves', 'Nogueira',
-        'Marques', 'Batista', 'Medeiros', 'Cruz', 'Farias',
-        'Dias', 'Andrade', 'Rezende', 'Castro', 'Vargas',
-        'Siqueira', 'Barros', 'Azevedo', 'Tavares', 'Peixoto'
+        'Marques', 'Batista', 'Medeiros', 'Cruz', 'Farias', 
+        'Andrade', 'Rezende', 'Castro', 'Vargas', 'Siqueira', 
+        'Barros', 'Azevedo', 'Tavares', 'Peixoto'
     );
 
     v_sexos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Masculino', 'Feminino');
@@ -87,13 +102,13 @@ BEGIN
 
         CASE v_tipo WHEN 'Falecido' THEN
             -- 0 a 225 anos
-            v_data_nascimento := SYSDATE - DBMS_RANDOM.VALUE(1, 225*365.25);
+            pkg_random_data.GERAR_DATA_ALEATORIA(SYSDATE, -1, -225*365.25, v_data_nascimento);
         WHEN 'Funcionario' THEN
             -- 18 a 70 anos
-            v_data_nascimento := SYSDATE - DBMS_RANDOM.VALUE(18*365.25, 70*365.25);
+            pkg_random_data.GERAR_DATA_ALEATORIA(SYSDATE, -18*365.25, -70*365.25, v_data_nascimento);
         ELSE -- v_tipo = Familiar
             -- 18 a 110 anos
-            v_data_nascimento := SYSDATE - DBMS_RANDOM.VALUE(18*365.25, 110*365.25);
+            pkg_random_data.GERAR_DATA_ALEATORIA(SYSDATE, -18*365.25, -110*365.25, v_data_nascimento);
         END CASE;
        
         INSERT INTO Pessoa(id, nome, cpf, data_nascimento, sexo, tipo)
@@ -103,7 +118,7 @@ BEGIN
 END;
 /
 
--- POPULAR FUNCIONARIOS BEGIN --
+-- POVOAR FUNCIONARIOS BEGIN --
 
 DECLARE
     v_funcoes SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
@@ -125,16 +140,16 @@ BEGIN
         v_salario := ROUND(DBMS_RANDOM.VALUE(1600, 20000), 2);    
         v_funcao := v_funcoes(TRUNC(DBMS_RANDOM.VALUE(1, v_funcoes.COUNT + 1)));
 
-        v_data_contratacao := f.data_nascimento + DBMS_RANDOM.VALUE(18*365.25, SYSDATE-f.data_nascimento);
+        pkg_random_data.GERAR_DATA_ALEATORIA(f.data_nascimento, 18*365.25,  SYSDATE-f.data_nascimento, v_data_contratacao);
 
         INSERT INTO Funcionario(id, data_contratacao, funcao, salario)
         VALUES (f.id, v_data_contratacao, v_funcao, v_salario);
     END LOOP;
 END;
 /
--- POPULAR FUNCIONARIOS END --
+-- POVOAR FUNCIONARIOS END --
 
--- POPULAR FALECIDOS BEGIN --
+-- POVOAR FALECIDOS BEGIN --
 
 DECLARE
     v_causas_morte SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
@@ -174,27 +189,20 @@ DECLARE
         END LOOP;
         RETURN v_result;
     END;
-
-    FUNCTION gerar_falecimento(p_data_nascimento IN DATE) RETURN DATE IS
-        v_death_date DATE;
-    BEGIN
-        v_death_date := p_data_nascimento + DBMS_RANDOM.VALUE(0, 111) * 365;
-        RETURN LEAST(SYSDATE, v_death_date);
-    END;
 BEGIN
     FOR f IN c_falecidos LOOP
         v_causa_obito := v_causas_morte(TRUNC(DBMS_RANDOM.VALUE(1, v_causas_morte.COUNT + 1)));
         v_numero_documento_obito := gerar_doc_obito;
-        v_data_falecimento := gerar_falecimento(f.data_nascimento);
+        pkg_random_data.GERAR_DATA_ALEATORIA(f.data_nascimento, 0, LEAST(SYSDATE-f.data_nascimento, 111*365.25), v_data_falecimento);
      
         INSERT INTO Falecido (id, data_falecimento, causa_obito, numero_documento_obito)
         VALUES (f.id, v_data_falecimento, v_causa_obito, v_numero_documento_obito);
     END LOOP;
 END;
 /
--- POPULAR FALECIDOS END --
+-- POVOAR FALECIDOS END --
 
--- POPULAR FAMILIARES BEGIN --
+-- POVOAR FAMILIARES BEGIN --
 
 DECLARE
     CURSOR c_familiares IS
@@ -208,11 +216,11 @@ BEGIN
     END LOOP;
 END;
 /
--- POPULAR FAMILIARES END --
+-- POVOAR FAMILIARES END --
 
----- POPULAR PESSOAS END ----
+---- POVOAR PESSOAS END ----
 
----- POPULAR ENDEREÇOS BEGIN ----
+---- POVOAR ENDEREÇOS BEGIN ----
 
 DECLARE
     v_estados SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
@@ -324,9 +332,9 @@ BEGIN
     END LOOP;
 END;
 /
----- POPULAR ENDEREÇOS END ----
+---- POVOAR ENDEREÇOS END ----
 
----- POPULAR TELEFONES BEGIN ----
+---- POVOAR TELEFONES BEGIN ----
 
 DECLARE
     v_numero VARCHAR2(13);
@@ -358,9 +366,9 @@ BEGIN
     END LOOP;
 END;
 /
----- POPULAR TELEFONES END ----
+---- POVOAR TELEFONES END ----
 
----- POPULAR JAZIGOS BEGIN ----
+---- POVOAR JAZIGOS BEGIN ----
 
 DECLARE
     v_tipos      SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Simples','Duplo','Familiar','Gaveta');
@@ -394,9 +402,9 @@ BEGIN
 END;
 /
 
----- POPULAR JAZIGOS END ----
+---- POVOAR JAZIGOS END ----
 
----- POPULAR MATERIAIS BEGIN ----
+---- POVOAR MATERIAIS BEGIN ----
 
 DECLARE
     v_materiais SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
@@ -446,4 +454,4 @@ BEGIN
     END LOOP;
 END;
 / 
----- POPULAR MATERIAIS END ----
+---- POVOAR MATERIAIS END ----

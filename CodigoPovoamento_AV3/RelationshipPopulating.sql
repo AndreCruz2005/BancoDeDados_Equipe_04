@@ -71,9 +71,9 @@ DECLARE
     v_motivo VARCHAR2(500);
 
 BEGIN
-    WHILE count_limit < 10 LOOP
+    WHILE count_limit < 15 LOOP
 
-        SELECT * INTO v_falecido FROM (SELECT * FROM Falecido ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
+        SELECT * INTO v_falecido FROM (SELECT * FROM Falecido WHERE id NOT IN (SELECT falecido_id FROM Exumacao) ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
         SELECT * INTO v_funcionario FROM (SELECT * FROM Funcionario ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
         SELECT id into v_jazigo_id FROM (SELECT id from Jazigo ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
 
@@ -171,9 +171,9 @@ END;
 -- Popular Solicitação e Serviço Funerário
 DECLARE
     -- Solicitação
+    v_familiar Pessoa%ROWTYPE;
+    v_funcionario Funcionario%ROWTYPE;
     v_data_solicitacao DATE;
-    v_familiar_id INT;
-    v_funcionario_id INT;
     v_status_solicitacao VARCHAR2(18);
     v_status_possiveis SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
         'Pagamento Pendente', 'Em Andamento', 'Concluida', 'Cancelada'
@@ -194,32 +194,27 @@ DECLARE
 BEGIN
     FOR i IN 1..25 LOOP
         v_servico_id := NULL;
-        v_data_solicitacao := SYSDATE - TRUNC(DBMS_RANDOM.VALUE(1, 10*365));
 
-        SELECT id
-        INTO v_familiar_id
-        FROM (
-            SELECT id FROM Pessoa 
-            WHERE tipo = 'Familiar' AND v_data_solicitacao - data_nascimento >= 18  
-            ORDER BY DBMS_RANDOM.VALUE
-        )
+        SELECT * INTO v_familiar
+        FROM (SELECT * FROM Pessoa WHERE Tipo = 'Familiar' ORDER BY DBMS_RANDOM.VALUE) 
         WHERE ROWNUM = 1;
 
-        SELECT id
-        INTO v_funcionario_id
-        FROM (
-            SELECT id FROM Funcionario 
-            WHERE v_data_solicitacao > data_contratacao 
-            ORDER BY DBMS_RANDOM.VALUE
-        )
+        SELECT * INTO v_funcionario
+        FROM ( SELECT * FROM Funcionario ORDER BY DBMS_RANDOM.VALUE)
         WHERE ROWNUM = 1;
+
+        v_data_solicitacao := GREATEST(
+            v_funcionario.data_contratacao, 
+            v_familiar.data_nascimento + 18*365.25, 
+            SYSDATE-DBMS_RANDOM.VALUE(1*365.25, 15*365.25)
+        );
 
         v_status_solicitacao := v_status_possiveis(TRUNC(DBMS_RANDOM.VALUE(1, v_status_possiveis.COUNT + 1)));
 
         -- Cria serviço associado à solicitação se o status for apropriado
         IF v_status_solicitacao = 'Em Andamento' OR v_status_solicitacao = 'Concluida' THEN
             v_servico_id := global_id_seq.NEXTVAL;
-            v_data := v_data_solicitacao + TRUNC(DBMS_RANDOM.VALUE(1, 15));
+            pkg_random_data.GERAR_DATA_ALEATORIA(v_data_solicitacao, 1, 15, v_data);
             v_valor := ROUND(DBMS_RANDOM.VALUE(100, 50000), 2);
             v_tipo := v_tipos_servico(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos_servico.COUNT + 1)));
 
@@ -228,7 +223,7 @@ BEGIN
         END IF;
         
         INSERT INTO Solicitacao(data_solicitacao, servico_id, familiar_id, funcionario_id, status_solicitacao)
-        VALUES (v_data_solicitacao, v_servico_id, v_familiar_id, v_funcionario_id, v_status_solicitacao);
+        VALUES (v_data_solicitacao, v_servico_id, v_familiar.id, v_funcionario.id, v_status_solicitacao);
     END LOOP;
 END;
 /
@@ -254,8 +249,8 @@ DECLARE
 BEGIN
     -- Insere 20 manutenções
     FOR i IN 1..20 LOOP
-        v_data_inicio := SYSDATE - TRUNC(DBMS_RANDOM.VALUE(30, 365*10));
-        v_data_fim := v_data_inicio + TRUNC(DBMS_RANDOM.VALUE(1, 30));
+        pkg_random_data.GERAR_DATA_ALEATORIA(SYSDATE, -30, -10*365.25, v_data_inicio);
+        pkg_random_data.GERAR_DATA_ALEATORIA(v_data_inicio, 1, 30, v_data_fim);
         v_motivo := v_motivos(TRUNC(DBMS_RANDOM.VALUE(1, v_motivos.COUNT + 1)));
 
         -- Seleciona jazigo e funcionário aleatórios
@@ -364,11 +359,11 @@ BEGIN
         FROM Exumacao
         WHERE falecido_id = f.id;
 
-        IF v_qt_exumacoes > 0 THEN 
-            v_data := LEAST(f.data_falecimento + DBMS_RANDOM.VALUE(1, 365*50), SYSDATE);
+        CASE v_qt_exumacoes WHEN 0 THEN
+            pkg_random_data.GERAR_DATA_ALEATORIA(f.data_falecimento, 1, LEAST(365*50, SYSDATE-f.data_falecimento), v_data);
         ELSE 
-            v_data := LEAST(f.data_falecimento + DBMS_RANDOM.VALUE(1, 365), SYSDATE);
-        END IF;
+            pkg_random_data.GERAR_DATA_ALEATORIA(f.data_falecimento, 1, LEAST(365, SYSDATE-f.data_falecimento), v_data);
+        END CASE;
 
         IF SYSDATE - v_data < 365.25 THEN
             v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
@@ -408,14 +403,12 @@ DECLARE
     v_data_fim DATE;
 
     v_exists INT;
-    v_responsavel_data_nascimento DATE;
-
 
     CURSOR c_jazigos_ocupados IS
-        SELECT sep.jazigo_id, sep.falecido_id, fam.id AS familiar_id
+        SELECT sep.jazigo_id, sep.falecido_id, fam.id AS familiar_id, fam.data_nascimento AS fam_nascimento
         FROM Sepultamento sep
         JOIN Parentesco par ON par.falecido_id = sep.falecido_id
-        JOIN Familiar fam ON fam.id = par.familiar_id;
+        JOIN Pessoa fam ON fam.id = par.familiar_id;
 
 BEGIN
     FOR j IN c_jazigos_ocupados LOOP
@@ -428,21 +421,16 @@ BEGIN
             CONTINUE;
         END IF;
 
-        SELECT data_nascimento INTO v_responsavel_data_nascimento FROM Pessoa WHERE id = j.familiar_id;
-
         v_pagamento := ROUND(DBMS_RANDOM.VALUE(500, 100000), 2);
         v_aluguel := ROUND(DBMS_RANDOM.VALUE(50, 1000), 2);
 
         -- Gera data de início com base na idade do familiar
-        v_data_inicio := LEAST(
-            SYSDATE,
-            v_responsavel_data_nascimento + DBMS_RANDOM.VALUE(19 * 365, 70 * 365)
-        );
+        pkg_random_data.GERAR_DATA_ALEATORIA(j.fam_nascimento, 1*365, LEAST(20*365, SYSDATE-j.fam_nascimento), v_data_fim);
 
         IF DBMS_RANDOM.VALUE(0, 1) < 0.3 THEN
             v_data_fim := NULL;
         ELSE
-            v_data_fim := v_data_inicio + DBMS_RANDOM.VALUE(1 * 365, 20 * 365);
+            pkg_random_data.GERAR_DATA_ALEATORIA(v_data_inicio, 1*365, 20*365, v_data_fim);
         END IF;
 
         INSERT INTO ResponsabilidadeJazigo (jazigo_id, responsavel_id, pagamento, aluguel, data_inicio, data_fim)
