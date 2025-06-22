@@ -425,7 +425,7 @@ BEGIN
         v_aluguel := ROUND(DBMS_RANDOM.VALUE(50, 1000), 2);
 
         -- Gera data de início com base na idade do familiar
-        pkg_random_data.GERAR_DATA_ALEATORIA(j.fam_nascimento, 1*365, LEAST(20*365, SYSDATE-j.fam_nascimento), v_data_fim);
+        pkg_random_data.GERAR_DATA_ALEATORIA(j.fam_nascimento, 1*365, LEAST(20*365, SYSDATE-j.fam_nascimento), v_data_inicio);
 
         IF DBMS_RANDOM.VALUE(0, 1) < 0.3 THEN
             v_data_fim := NULL;
