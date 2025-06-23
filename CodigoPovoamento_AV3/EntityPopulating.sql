@@ -5,9 +5,14 @@ CREATE SEQUENCE global_id_seq
   NOCYCLE;
 
 -- Packagae com procedures para gerar diversos dados aleatórios para povoamento
-
 CREATE OR REPLACE PACKAGE pkg_random_data IS
+    TYPE GridCemiterio IS RECORD (
+        quadras INT,
+        filas INT,
+        numeros INT
+    );
     PROCEDURE GERAR_DATA_ALEATORIA(data_referencia IN DATE, tempo_minimo IN NUMBER, tempo_maximo IN NUMBER, v_data OUT DATE);
+    PROCEDURE GERAR_GRID_CEMITERIO(qt_jazigos IN INT, grid IN OUT pkg_random_data.GridCemiterio);
 END pkg_random_data;
 /
 
@@ -16,7 +21,60 @@ CREATE OR REPLACE PACKAGE BODY pkg_random_data IS
     BEGIN
         v_data := data_referencia + DBMS_RANDOM.VALUE(tempo_minimo, tempo_maximo);
     END GERAR_DATA_ALEATORIA;
+
+    -- Função recebe um número alvo de jazigos e seleciona uma quantidade aleatória de quadras, filas por quadra e jazigos por fila
+    -- que se aproximam do número alvo. Valores da grid devem estar incializados antes da grid ser passada como parâmetro.
+    PROCEDURE GERAR_GRID_CEMITERIO(qt_jazigos IN INT, grid IN OUT pkg_random_data.GridCemiterio) IS
+    BEGIN
+        WHILE grid.quadras * grid.filas * grid.numeros < qt_jazigos LOOP
+            grid.quadras := grid.quadras + TRUNC(DBMS_RANDOM.VALUE(1, 3));
+            grid.filas := grid.filas + TRUNC(DBMS_RANDOM.VALUE(2, 4));
+            grid.numeros := grid.numeros + TRUNC(DBMS_RANDOM.VALUE(3, 5));
+
+        END LOOP;
+    END GERAR_GRID_CEMITERIO;
 END pkg_random_data;
+/
+
+-- Package para configurar o povoamento
+CREATE OR REPLACE PACKAGE pkg_global_vars IS
+    QT_PESSOAS        INT;
+    QT_FUNCIONARIOS   INT;
+    QT_FAMILIARES     INT;
+
+    QT_PESSOAS_VIVAS  INT;
+    QT_FALECIDOS      INT;
+
+    QT_TELEFONES      INT;
+    QT_ENDERECOS      INT;
+    QT_JAZIGOS        INT; -- Aproximado, número real irá variar na geração
+
+    QT_EXUMACOES      INT;
+    QT_GERENTES       INT;
+    QT_SERVICOS       INT;
+    QT_MANUTENCOES    INT;
+END pkg_global_vars;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_global_vars IS
+BEGIN
+    QT_PESSOAS       := 1500;
+    QT_FUNCIONARIOS  := 100;
+    QT_FAMILIARES    := 300;
+
+    QT_PESSOAS_VIVAS := QT_FUNCIONARIOS + QT_FAMILIARES;
+    QT_FALECIDOS     := QT_PESSOAS - QT_PESSOAS_VIVAS;
+
+    QT_TELEFONES     := TRUNC(QT_PESSOAS_VIVAS * 0.9);
+    QT_ENDERECOS     := TRUNC(QT_PESSOAS_VIVAS * 0.7);
+    QT_JAZIGOS       := TRUNC(QT_FALECIDOS * 0.2);
+
+    QT_EXUMACOES     := 30;
+    QT_GERENTES      := 10;
+    QT_SERVICOS      := 25;
+    QT_MANUTENCOES   := 20;
+
+END pkg_global_vars;
 /
 
 ---- POVOAR PESSOAS BEGIN ----
@@ -48,7 +106,6 @@ DECLARE
     );
 
     v_sexos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Masculino', 'Feminino');
-    v_tipos SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST('Familiar', 'Familiar', 'Funcionario', 'Falecido', 'Falecido', 'Falecido');
 
     v_nome_completo VARCHAR2(100);
     v_cpf  VARCHAR2(11);
@@ -78,10 +135,17 @@ DECLARE
     END;
 
 BEGIN
-    FOR i IN 1..400 LOOP
+    FOR i IN 1..pkg_global_vars.QT_PESSOAS LOOP
         -- Gera sexo e tipo
         v_sexo := v_sexos(TRUNC(DBMS_RANDOM.VALUE(1, v_sexos.COUNT + 1)));
-        v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
+
+        IF i < pkg_global_vars.QT_FUNCIONARIOS THEN
+            v_tipo := 'Funcionario';
+        ELSIF i < pkg_global_vars.QT_PESSOAS_VIVAS THEN
+            v_tipo := 'Familiar';
+        ELSE
+            v_tipo := 'Falecido';
+        END IF;
 
         -- Gera nome completo aleatório
         CASE v_sexo
@@ -94,12 +158,14 @@ BEGIN
                 v_sobrenomes(TRUNC(DBMS_RANDOM.VALUE(1, v_sobrenomes.COUNT + 1)));
         END CASE;
 
+        -- Só pessoas vivas recebem CPF
         CASE v_tipo WHEN 'Falecido' THEN
             v_cpf := NULL;
         ELSE
             v_cpf := gerar_cpf;
-        END CASE;
+        END CASE;   
 
+        -- Define data de nascimento levando em conta o tipo de pessoa
         CASE v_tipo WHEN 'Falecido' THEN
             -- 0 a 225 anos
             pkg_random_data.GERAR_DATA_ALEATORIA(SYSDATE, -1, -225*365.25, v_data_nascimento);
@@ -123,13 +189,15 @@ END;
 DECLARE
     v_funcoes SYS.ODCIVARCHAR2LIST := SYS.ODCIVARCHAR2LIST(
     'Coveiro','Recepcionista', 'Agente Funerário', 'Jardineiro','Eletricista',
-    'Encanador', 'Pedreiro', 'Zelador', 'Contador', 'Gerente de Vendas de Jazigos', 'Arquivista', 
+    'Encanador', 'Pedreiro', 'Zelador', 'Contador', 'Gerente de Vendas de Jazigos', 
     'Segurança', 'Motorista');
 
     v_salario NUMBER(8, 2);
     v_funcao VARCHAR2(50);
     v_data_contratacao DATE;
 
+    -- Seleciona todas as pessoas do tipo funcionário que não tem registro correspondente na tabela Funcionário
+    -- para criar esse registro correspondente
     CURSOR c_funcionarios IS
         SELECT id, data_nascimento FROM Pessoa
         WHERE tipo = 'Funcionario'
@@ -165,11 +233,13 @@ DECLARE
     v_numero_documento_obito VARCHAR2(32);
     v_data_falecimento DATE;
 
+    -- Seleciona pessoas do tipo falecido que não têm um registro correspondente na tabela Falecido.
     CURSOR c_falecidos IS
         SELECT id, data_nascimento FROM Pessoa
         WHERE tipo = 'Falecido'
           AND id NOT IN (SELECT id FROM Falecido);
 
+    -- Função pra gerar número do documento de óbito. Eu não sei se é de fato 32 números, me corrijam.
     FUNCTION gerar_doc_obito RETURN VARCHAR2 IS
         v_result VARCHAR2(32);
         v_exists INT;
@@ -189,6 +259,7 @@ DECLARE
         END LOOP;
         RETURN v_result;
     END;
+
 BEGIN
     FOR f IN c_falecidos LOOP
         v_causa_obito := v_causas_morte(TRUNC(DBMS_RANDOM.VALUE(1, v_causas_morte.COUNT + 1)));
@@ -291,9 +362,7 @@ DECLARE
     v_bairro VARCHAR2(50);
     v_rua VARCHAR2(100);
 
-    -- INDEXES
     v_estado_idx INT;
-    v_bairro_idx INT;
 
     FUNCTION gerar_cep RETURN VARCHAR2 IS
         v_result VARCHAR2(8);
@@ -317,15 +386,14 @@ DECLARE
     END;
 
 BEGIN
-    FOR i IN 1..80 LOOP
+    FOR i IN 1..pkg_global_vars.QT_ENDERECOS LOOP
         v_estado_idx := TRUNC(DBMS_RANDOM.VALUE(1, 28));
-        v_bairro_idx := TRUNC(DBMS_RANDOM.VALUE(1, 11));
 
         v_cep := gerar_cep;
         v_estado := v_estados(v_estado_idx);
         v_cidade := v_cidades(v_estado_idx);
-        v_bairro := v_bairros(v_bairro_idx);
-        v_rua := v_ruas(v_bairro_idx);
+        v_bairro := v_bairros(TRUNC(DBMS_RANDOM.VALUE(1, 11)));
+        v_rua := v_ruas(TRUNC(DBMS_RANDOM.VALUE(1, 11)));
 
         INSERT INTO Endereco(cep, estado, cidade, bairro, rua) 
         VALUES (v_cep, v_estado, v_cidade, v_bairro, v_rua);
@@ -360,7 +428,7 @@ DECLARE
     END;
 
 BEGIN
-    FOR i IN 1..100 LOOP
+    FOR i IN 1..pkg_global_vars.QT_TELEFONES LOOP
         v_numero := gerar_telefone;
         INSERT INTO Telefone(numero) VALUES (v_numero);
     END LOOP;
@@ -377,28 +445,36 @@ DECLARE
     v_numero     INT;
     v_capacidade INT;
     v_tipo       VARCHAR2(20);
-BEGIN
-  FOR q IN 1..4 LOOP
-    FOR f IN 1..5 LOOP
-      FOR n IN 1..6 LOOP
-        v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
-        v_quadra := q;
-        v_numero := n;
-        v_fila := f;
-        CASE v_tipo
-          WHEN 'Duplo' THEN
-            v_capacidade := 2;
-          WHEN 'Familiar' THEN
-            v_capacidade := TRUNC(DBMS_RANDOM.VALUE(3, 11));
-          ELSE
-            v_capacidade := 1;
-        END CASE;
 
-        INSERT INTO Jazigo(id, fila, quadra, numero, capacidade, tipo)
-        VALUES (global_id_seq.NEXTVAL, v_fila, v_quadra, v_numero, v_capacidade, v_tipo);
-      END LOOP;
+    v_grid pkg_random_data.GridCemiterio;
+BEGIN
+    v_grid.quadras := 1;
+    v_grid.filas := 1;
+    v_grid.numeros := 1;
+    pkg_random_data.GERAR_GRID_CEMITERIO(pkg_global_vars.QT_JAZIGOS, v_grid);
+    FOR q IN 1..v_grid.quadras LOOP
+        FOR f IN 1..v_grid.filas LOOP
+            FOR n IN 1..v_grid.numeros LOOP
+                v_tipo := v_tipos(TRUNC(DBMS_RANDOM.VALUE(1, v_tipos.COUNT + 1)));
+                v_quadra := q;
+                v_numero := n;
+                v_fila := f;
+                CASE v_tipo
+                WHEN 'Duplo' THEN
+                    v_capacidade := 2;
+                WHEN 'Familiar' THEN
+                    v_capacidade := TRUNC(DBMS_RANDOM.VALUE(3, 11));
+                WHEN 'Gaveta' THEN
+                    v_capacidade := TRUNC(DBMS_RANDOM.VALUE(10, 31));
+                ELSE
+                    v_capacidade := 1;
+                END CASE;
+
+                INSERT INTO Jazigo(id, fila, quadra, numero, capacidade, tipo)
+                VALUES (global_id_seq.NEXTVAL, v_fila, v_quadra, v_numero, v_capacidade, v_tipo);
+            END LOOP;
+        END LOOP;
     END LOOP;
-  END LOOP;
 END;
 /
 

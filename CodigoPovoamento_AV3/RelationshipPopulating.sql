@@ -64,14 +64,14 @@ DECLARE
 
     count_limit INT := 0;
 
-    v_falecido Falecido%ROWTYPE; 
+    v_falecido Falecido%ROWTYPE;
+    v_funcionario Funcionario%ROWTYPE; 
     v_jazigo_id INT;
-    v_funcionario Funcionario%ROWTYPE;
     v_data_exumacao DATE;
     v_motivo VARCHAR2(500);
 
 BEGIN
-    WHILE count_limit < 15 LOOP
+    WHILE count_limit < pkg_global_vars.QT_EXUMACOES LOOP
 
         SELECT * INTO v_falecido FROM (SELECT * FROM Falecido WHERE id NOT IN (SELECT falecido_id FROM Exumacao) ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
         SELECT * INTO v_funcionario FROM (SELECT * FROM Funcionario ORDER BY DBMS_RANDOM.VALUE) WHERE ROWNUM = 1;
@@ -142,7 +142,7 @@ DECLARE
         SELECT id FROM (
             SELECT id FROM Funcionario
             ORDER BY salario DESC
-        ) WHERE ROWNUM < 10;
+        ) WHERE ROWNUM < pkg_global_vars.QT_GERENTES;
 
     v_gerenciado_id INT;
 BEGIN
@@ -192,7 +192,7 @@ DECLARE
         'Homenagem Floral', 'Cerimonial', 'Urna Funerária'
     );
 BEGIN
-    FOR i IN 1..25 LOOP
+    FOR i IN 1..pkg_global_vars.QT_SERVICOS LOOP
         v_servico_id := NULL;
 
         SELECT * INTO v_familiar
@@ -247,8 +247,8 @@ DECLARE
     );
     v_manutencao_id INT;
 BEGIN
-    -- Insere 20 manutenções
-    FOR i IN 1..20 LOOP
+    -- Insere manutenções
+    FOR i IN 1..pkg_global_vars.QT_MANUTENCOES LOOP
         pkg_random_data.GERAR_DATA_ALEATORIA(SYSDATE, -30, -10*365.25, v_data_inicio);
         pkg_random_data.GERAR_DATA_ALEATORIA(v_data_inicio, 1, 30, v_data_fim);
         v_motivo := v_motivos(TRUNC(DBMS_RANDOM.VALUE(1, v_motivos.COUNT + 1)));
@@ -425,7 +425,7 @@ BEGIN
         v_aluguel := ROUND(DBMS_RANDOM.VALUE(50, 1000), 2);
 
         -- Gera data de início com base na idade do familiar
-        pkg_random_data.GERAR_DATA_ALEATORIA(j.fam_nascimento, 1*365, LEAST(20*365, SYSDATE-j.fam_nascimento), v_data_inicio);
+        pkg_random_data.GERAR_DATA_ALEATORIA(j.fam_nascimento, 25*365, LEAST(80*365, SYSDATE-j.fam_nascimento), v_data_inicio);
 
         IF DBMS_RANDOM.VALUE(0, 1) < 0.3 THEN
             v_data_fim := NULL;
