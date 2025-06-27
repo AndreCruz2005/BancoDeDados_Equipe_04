@@ -6,7 +6,7 @@ SELECT pes.nome, sep.data, sep.tipo, jaz.tipo AS jazigo_tipo, jaz.quadra, jaz.fi
 FROM Sepultamento sep
 INNER JOIN Pessoa pes on pes.id = sep.falecido_id
 INNER JOIN Jazigo jaz on jaz.id = sep.jazigo_id
-WHERE data < SYSDATE - (5*365.25) AND data > SYSDATE - (100*365.25) 
+WHERE sep.data BETWEEN SYSDATE - (100*365.25) AND SYSDATE - (5*365.25) 
 ORDER BY data DESC;
 
 

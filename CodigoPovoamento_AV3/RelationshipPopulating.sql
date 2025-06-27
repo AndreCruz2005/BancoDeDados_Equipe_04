@@ -192,7 +192,7 @@ DECLARE
         'Homenagem Floral', 'Cerimonial', 'Urna Funerária'
     );
 BEGIN
-    FOR i IN 1..pkg_global_vars.QT_SERVICOS LOOP
+    FOR i IN 1..pkg_global_vars.QT_SOLICTACOES LOOP
         v_servico_id := NULL;
 
         SELECT * INTO v_familiar

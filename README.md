@@ -21,7 +21,7 @@
 | UPDATE                              |        |
 | DELETE                              |        |
 | SELECT-FROM-WHERE                   | ✅     |
-| BETWEEN                             |        |
+| BETWEEN                             |   ✅     |
 | IN                                  | ✅     |
 | LIKE                                |        |
 | IS NULL / IS NOT NULL               | ✅     |

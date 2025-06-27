@@ -51,7 +51,7 @@ CREATE OR REPLACE PACKAGE pkg_global_vars IS
 
     QT_EXUMACOES      INT;
     QT_GERENTES       INT;
-    QT_SERVICOS       INT;
+    QT_SOLICTACOES    INT;
     QT_MANUTENCOES    INT;
 END pkg_global_vars;
 /
@@ -69,10 +69,10 @@ BEGIN
     QT_ENDERECOS     := TRUNC(QT_PESSOAS_VIVAS * 0.7);
     QT_JAZIGOS       := TRUNC(QT_FALECIDOS * 0.2);
 
-    QT_EXUMACOES     := 30;
-    QT_GERENTES      := 10;
-    QT_SERVICOS      := 25;
-    QT_MANUTENCOES   := 20;
+    QT_EXUMACOES     := 100;
+    QT_GERENTES      := 15;
+    QT_SOLICTACOES   := 150;
+    QT_MANUTENCOES   := 60;
 
 END pkg_global_vars;
 /
