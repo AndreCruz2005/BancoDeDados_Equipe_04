@@ -1,4 +1,11 @@
-# BancoDeDados_SQL_Equipe_04
+# Banco De Dados - 2025.1 - Equipe_04
+
+- André Vinícius **(avnc)**
+- Felipe Maran **(fma3)**
+- Guilherme Vinícius **(gvnb)**
+- João Pedro **(jpfs2)**
+- João Vitor **(jvab2)**
+- Tiago Henrique **(thmq)**
 
 ## Construir e popular o banco de dados - AV3
 
