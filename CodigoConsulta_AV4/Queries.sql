@@ -321,7 +321,7 @@ BEGIN
 END;
 /
 
--- (Comandos utilizados: CREATE FUNCTION)
+-- (Comandos utilizados: CREATE FUNCTION, EXCEPTION)
 -- Calcula tempo médio entre solicitação e conclusão de serviços
 CREATE OR REPLACE FUNCTION calcular_tempo_medio_servico
 RETURN NUMBER IS
@@ -348,6 +348,8 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('Tempo médio: ' || v_tempo_medio || ' dias');
 END;
 /
+
+-- (Comandos utilizados: CASE, COUNT, LEFT JOIN, GROUP BY, ORDER BY)
 -- Relatório da produtividade de funcionários
 -- Dá uma nota dependendo da média de valor por solicitação que o funcionário gerou até o momento
 SELECT 
@@ -392,7 +394,8 @@ JOIN Jazigo j ON sep_idades.jazigo_id = j.id
 GROUP BY j.quadra, j.fila
 ORDER BY quadra, fila;
 
--- Relatório de jazigos com baixa ocupação
+-- (Comandos utilizados: LEFT JOIN, GROUP BY)
+-- Seleciona jazigos com menos de 50% de ocupação e com sepultamentos mais antigos que 5 anos
 SELECT 
     j.*,
     ocupacao.ocupados,
