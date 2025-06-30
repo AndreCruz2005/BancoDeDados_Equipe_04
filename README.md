@@ -1,11 +1,11 @@
 # Banco De Dados - 2025.1 - Equipe_04
 
-- André Vinícius **(avnc)**
-- Felipe Maran **(fma3)**
-- Guilherme Vinícius **(gvnb)**
-- João Pedro **(jpfs2)**
-- João Vitor **(jvab2)**
-- Tiago Henrique **(thmq)**
+-   André Vinícius **(avnc)**
+-   Felipe Maran **(fma3)**
+-   Guilherme Vinícius **(gvnb)**
+-   João Pedro **(jpfs2)**
+-   João Vitor **(jvab2)**
+-   Tiago Henrique **(thmq)**
 
 ## Construir e popular o banco de dados - AV3
 
@@ -22,15 +22,15 @@
 
 | Item                                | Usado? |
 | ----------------------------------- | ------ |
-| ALTER TABLE                         |        |
-| CREATE INDEX                        |        |
+| ALTER TABLE                         | ✅     |
+| CREATE INDEX                        | ✅     |
 | INSERT INTO                         | ✅     |
-| UPDATE                              |        |
-| DELETE                              |        |
+| UPDATE                              | ✅     |
+| DELETE                              | ✅     |
 | SELECT-FROM-WHERE                   | ✅     |
-| BETWEEN                             |   ✅     |
+| BETWEEN                             | ✅     |
 | IN                                  | ✅     |
-| LIKE                                |        |
+| LIKE                                | ✅     |
 | IS NULL / IS NOT NULL               | ✅     |
 | INNER JOIN                          | ✅     |
 | LEFT / RIGHT / FULL OUTER JOIN      | ✅     |
@@ -45,9 +45,9 @@
 | ORDER BY                            | ✅     |
 | GROUP BY                            | ✅     |
 | HAVING                              | ✅     |
-| UNION / INTERSECT / MINUS           |        |
-| CREATE VIEW                         |        |
-| GRANT / REVOKE                      |        |
+| UNION / INTERSECT / MINUS           | ✅     |
+| CREATE VIEW                         | ✅     |
+| GRANT / REVOKE                      | ✅     |
 
 ### PL/SQL
 

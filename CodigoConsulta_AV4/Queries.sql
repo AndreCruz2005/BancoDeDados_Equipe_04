@@ -1,3 +1,7 @@
+-- Otimiza buscas por nomes de pessoas e localização de jazigos
+CREATE INDEX idx_pessoa_nome ON Pessoa(nome);
+CREATE INDEX idx_jazigo_local ON Jazigo(quadra, fila, numero);
+
 -- Relatório de Sepultamentos por Período
 -- Seleciona informações sobre todos os sepultamentos ocorridos há mais de 5 anos e há menos de 100 anos
 -- Informações inclusas: Nome do falecido, data de sepultamento, tipo de sepultamento, tipo de jazigo e localização do jazigo.
@@ -114,12 +118,17 @@ WHERE capacidade > ALL (
     GROUP BY jazigo_id
 );
 
+-- Seleciona falecidos cujo sobrenome é Vargas, indica se algum deles é Getúlio Vargas
+SELECT nome,
+CASE 
+    WHEN nome like 'Getúlio%' THEN 'SIM!'
+    ELSE 'NÃO!' 
+    END AS ele_esta_aqui
+FROM Pessoa 
+WHERE nome LIKE '%Vargas' AND tipo = 'Falecido';
+
 -- Adiciona coluna para observações nos sepultamentos
 ALTER TABLE Sepultamento ADD observacoes VARCHAR2(500);
-
--- Otimiza buscas por nomes de pessoas e localização de jazigos
-CREATE INDEX idx_pessoa_nome ON Pessoa(nome);
-CREATE INDEX idx_jazigo_local ON Jazigo(quadra, fila, numero);
 
 -- Aplica reajuste salarial diferenciado por função e tempo de serviço
 UPDATE Funcionario f
@@ -139,12 +148,7 @@ AND salario < (
 -- Remove solicitações canceladas com mais de 5 anos
 DELETE FROM Solicitacao
 WHERE status_solicitacao = 'Cancelada'
-AND data_solicitacao < ADD_MONTHS(SYSDATE, -60)
-AND servico_id NOT IN (
-    SELECT id 
-    FROM ServicoFunerario 
-    WHERE tipo = 'Exumacao'
-);
+AND data_solicitacao < ADD_MONTHS(SYSDATE, -60);
 
 -- Relatório financeiro de serviços por período
 SELECT 
@@ -162,25 +166,29 @@ HAVING SUM(sf.valor) > 10000
 ORDER BY total DESC;
 
 -- Análise de sepultamentos por localização específica
+-- Agrupa sepultamentos por quadra e fila e incluí informação
+-- sobre total de sepultamentos na fila e a idade média e máxima dos falecidos na data de sua morte
 SELECT 
     j.quadra,
     j.fila,
     COUNT(*) AS total_sepultamentos,
-    AVG(idade) AS idade_media,
+    TRUNC(AVG(idade)) AS idade_media,
     MAX(idade) AS idade_maxima
 FROM (
     SELECT 
         s.jazigo_id,
-        TRUNC(MONTHS_BETWEEN(s.data, p.data_nascimento)/12) AS idade
+        TRUNC(MONTHS_BETWEEN(f.data_falecimento, p.data_nascimento)/12) AS idade
     FROM Sepultamento s
-    JOIN Pessoa p ON s.falecido_id = p.id
+    JOIN Falecido f ON s.falecido_id = f.id
+    JOIN Pessoa p on s.falecido_id = p.id
 ) sep_idades
 JOIN Jazigo j ON sep_idades.jazigo_id = j.id
-WHERE j.quadra LIKE 'A%' OR j.quadra LIKE 'BL%'
 GROUP BY j.quadra, j.fila
-ORDER BY total_sepultamentos DESC;
+ORDER BY quadra, fila;
 
 -- Relatório combinado de falecidos e responsáveis por jazigo
+-- A ordenação garante que o responsável pelo jazigo apareça logo antes de todos os falecidos naquele jazigo
+-- Data relevante é data de sepultamento para falecido e data de ínicio da responsabilidade para responsável
 SELECT 
     p.nome AS nome, 
     'Falecido' AS tipo,
@@ -198,7 +206,7 @@ SELECT
 FROM Pessoa p
 JOIN ResponsabilidadeJazigo rj ON p.id = rj.responsavel_id
 JOIN Jazigo j ON rj.jazigo_id = j.id
-ORDER BY data_relevante DESC;
+ORDER BY localizacao, tipo DESC;
 
 -- Cria visão detalhada para gestão de jazigos
 CREATE VIEW vw_gestao_jazigos AS
@@ -217,11 +225,9 @@ LEFT JOIN Sepultamento s ON j.id = s.jazigo_id
 LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
 GROUP BY j.id, j.quadra, j.fila, j.numero, j.capacidade, rj.responsavel_id;
 
--- Exemplos de controle de acesso
-/*
-GRANT SELECT ON vw_gestao_jazigos TO gestor_cemiterio;
-REVOKE DELETE ON Sepultamento FROM atendente;
-*/
+-- Seleciona aqueles jazigos na view que não tiverem manutencão registrada
+SELECT * FROM VW_GESTAO_JAZIGOS
+WHERE ULTIMA_MANUTENCAO IS NOT NULL;
 
 -- Relatório de jazigos com baixa ocupação
 SELECT 
@@ -243,26 +249,28 @@ AND j.id IN (
     WHERE data < ADD_MONTHS(SYSDATE, -60)
 );
 
--- Classificação de funcionários por produtividade
+-- Relatório da produtividade de funcionários
+-- Dá uma nota dependendo da média de valor por solicitação que o funcionário gerou até o momento
 SELECT 
     f.id,
-    p.nome,
-    f.funcao,
-    COUNT(s.id) AS total_solicitacoes,
-    CASE 
-        WHEN COUNT(s.id) > 20 THEN 'Alta'
-        WHEN COUNT(s.id) BETWEEN 10 AND 20 THEN 'Média'
-        ELSE 'Baixa'
-    END AS produtividade,
-    (SELECT SUM(valor) 
-     FROM ServicoFunerario sf 
-     WHERE sf.id = s.servico_id) AS valor_gerado
+    pes.nome,
+    COUNT(s.FUNCIONARIO_ID) as solicitacoes_totais,
+    COALESCE(SUM(sf.valor), 0) AS valor_total,
+    CASE
+        WHEN COALESCE(SUM(sf.valor), 0)/GREATEST(COUNT(s.FUNCIONARIO_ID), 1) > 30000 THEN 'S'
+        WHEN COALESCE(SUM(sf.valor), 0)/GREATEST(COUNT(s.FUNCIONARIO_ID), 1) > 20000 THEN 'A'
+        WHEN COALESCE(SUM(sf.valor), 0)/GREATEST(COUNT(s.FUNCIONARIO_ID), 1) > 10000 THEN 'B'
+        WHEN COALESCE(SUM(sf.valor), 0)/GREATEST(COUNT(s.FUNCIONARIO_ID), 1) > 5000 THEN 'C'
+        WHEN COALESCE(SUM(sf.valor), 0)/GREATEST(COUNT(s.FUNCIONARIO_ID), 1) > 1000 THEN 'D'
+        ELSE 'F'
+    END AS produtividade
 FROM Funcionario f
-JOIN Pessoa p ON f.id = p.id
-LEFT JOIN Solicitacao s ON f.id = s.funcionario_id
-GROUP BY f.id, p.nome, f.funcao
-HAVING COUNT(s.id) > 0
-ORDER BY total_solicitacoes DESC;
+JOIN Pessoa pes ON pes.id = f.id
+LEFT JOIN Solicitacao s ON s.funcionario_id = f.id
+LEFT JOIN ServicoFunerario sf ON sf.id = s.servico_id
+GROUP BY f.id, pes.nome
+ORDER BY valor_total DESC, solicitacoes_totais DESC;
+
 
 -- Atualiza status de jazigos sem manutenção recente
 CREATE OR REPLACE PROCEDURE atualizar_jazigos_sem_manutencao AS
@@ -330,3 +338,9 @@ BEGIN
     END IF;
 END;
 /
+
+-- Exemplos de controle de acesso
+/*
+GRANT SELECT ON vw_gestao_jazigos TO gestor_cemiterio;
+REVOKE DELETE ON Sepultamento FROM atendente;
+*/
