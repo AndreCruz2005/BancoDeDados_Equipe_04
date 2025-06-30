@@ -2,6 +2,57 @@
 CREATE INDEX idx_pessoa_nome ON Pessoa(nome);
 CREATE INDEX idx_jazigo_local ON Jazigo(quadra, fila, numero);
 
+-- (Comandos utilizados: CREATE TRIGGER(Comando), SELECT INTO, CURSOR, FOR LOOP, COUNT, IF)
+-- Se um comando de delete for utilizado em Funcionario, remove quaisquer pessoas com tipo funcionario que não têm registro correspondente em Funcionario
+CREATE OR REPLACE TRIGGER trg_remove_funcionario
+AFTER DELETE ON Funcionario
+DECLARE
+    v_existe NUMBER;
+
+    CURSOR c_funcionarios IS
+        SELECT id FROM Pessoa 
+        WHERE TIPO = 'Funcionario';
+BEGIN
+    FOR fun IN c_funcionarios LOOP
+        SELECT COUNT(*) INTO v_existe
+        FROM Funcionario 
+        WHERE id = fun.id;
+
+        IF v_existe = 0 THEN
+            DELETE FROM Pessoa 
+            WHERE id = fun.id;
+        END IF;
+    END LOOP;
+END;
+/
+
+-- (Comandos utilizados: CREATE TRIGGER(Linha), IF, SELECT INTO)
+-- Trigger para impedir que a capacidade de um jazigo seja excedida
+CREATE OR REPLACE TRIGGER trg_valida_capacidade_jazigo
+BEFORE INSERT ON Sepultamento
+FOR EACH ROW
+DECLARE
+    v_ocupados   INT;
+    v_capacidade INT;
+BEGIN
+    -- Conta quantos falecidos já estão no jazigo
+    SELECT COUNT(*) INTO v_ocupados
+    FROM Sepultamento
+    WHERE jazigo_id = :NEW.jazigo_id;
+
+    -- Obtém a capacidade do jazigo
+    SELECT capacidade INTO v_capacidade
+    FROM Jazigo
+    WHERE id = :NEW.jazigo_id;
+
+    -- Verifica se a capacidade já foi atingida
+    IF v_ocupados >= v_capacidade THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Capacidade máxima do jazigo atingida.');
+    END IF;
+END;
+/
+
+-- (Comandos utilizados: SELECT, FROM, WHERE, JOIN, ORDER BY, BETWEEN)
 -- Relatório de Sepultamentos por Período
 -- Seleciona informações sobre todos os sepultamentos ocorridos há mais de 5 anos e há menos de 100 anos
 -- Informações inclusas: Nome do falecido, data de sepultamento, tipo de sepultamento, tipo de jazigo e localização do jazigo.
@@ -14,6 +65,7 @@ WHERE sep.data BETWEEN SYSDATE - (100*365.25) AND SYSDATE - (5*365.25)
 ORDER BY data DESC;
 
 
+-- (Comandos utilizados: LEFT JOIN, GROUP BY, COUNT)
 -- Relatório sobre a Capacidade dos Jazigos
 -- Mostra jazigos com espaço livre restante
 -- Exibe ID do Jazigo, tipo, capacidade do jazigo, a quantidade de falecidos sepultados no jazigo e o espaço livre restante
@@ -30,7 +82,7 @@ LEFT JOIN (
 ) s ON j.id = s.jazigo_id
 ORDER BY espaco_disponivel DESC;
 
-
+-- (Comandos utilizados: HAVING)
 -- Relatório sobre os funcionários que receberam mais solicitações
 -- Seleciona somente aqueles que receberam mais de uma solicitação
 -- Exibe nome e total de solicitações recebidas pelo funcionário
@@ -41,7 +93,7 @@ GROUP BY pes.nome, s.funcionario_id
 HAVING COUNT(*) > 1
 ORDER BY total DESC;
 
-
+-- (Comandos utilizados: RECORD, TABLE, %TYPE, CURSOR, OPEN, FETCH, CLOSE, WHILE, MIN, MAX, AVG, EXIT WHEN)
 -- Encontra a idade mínima, média e máxima de pessoas por tipo, mais as datas de nascimento da mais velha e nova pessoa por tipo.
 DECLARE
     TYPE AgeData IS RECORD (
@@ -89,6 +141,7 @@ BEGIN
 END;
 /
 
+-- (Comandos utilizados: Subconsulta com IN)
 -- Relatório sobre exumações que incluí o jazigo original e o jazigo de destino
 SELECT
     (SELECT nome FROM Pessoa WHERE id = fal.id) AS nome,
@@ -100,7 +153,7 @@ WHERE fal.id IN (
     FROM Exumacao
 );
 
-
+-- (Comandos utilizados: Subconsulta com ANY e operador relacional)
 -- Seleciona funcionários não coveiros que recebem menos que algum coveiro
 SELECT p.nome, f.data_contratacao, f.funcao, f.salario FROM FUNCIONARIO f
 JOIN Pessoa p ON p.id = f.id
@@ -109,7 +162,7 @@ WHERE salario < ANY (
 )
 AND Funcao != 'Coveiro';
 
-
+-- (Comandos utilizados: Subconsulta com ALL e operador relacional)
 -- Seleciona jazigos com capacidade maior do que o total de sepultamentos em qualquer jazigo
 SELECT * FROM Jazigo
 WHERE capacidade > ALL (
@@ -118,6 +171,11 @@ WHERE capacidade > ALL (
     GROUP BY jazigo_id
 );
 
+-- (Comandos utilizados: INSERT INTO)
+-- Para testar o comando abaixo
+INSERT INTO Pessoa(id, nome, tipo) VALUES (TRUNC(DBMS_RANDOM.VALUE(500000, 99999999)), 'Getúlio Vargas', 'Falecido');
+
+-- (Comandos utilizados: LIKE, CASE)
 -- Seleciona falecidos cujo sobrenome é Vargas, indica se algum deles é Getúlio Vargas
 SELECT nome,
 CASE 
@@ -127,15 +185,18 @@ CASE
 FROM Pessoa 
 WHERE nome LIKE '%Vargas' AND tipo = 'Falecido';
 
+-- (Comandos utilizados: ALTER TABLE)
 -- Adiciona coluna para observações nos sepultamentos
 ALTER TABLE Sepultamento ADD observacoes VARCHAR2(500);
 
--- Aplica reajuste salarial diferenciado por função e tempo de serviço
+-- (Comandos utilizados: UPDATE)
+-- Aplica reajuste salarial para os funcionários com base em função e tempo de serviço
+-- Aumenta o salário de todo não coveiro com salário menor que o coveiro mais bem pago
 UPDATE Funcionario f
 SET salario = salario * 
     CASE 
-        WHEN funcao = 'Administrador' THEN 1.15
-        WHEN funcao = 'Atendente' AND MONTHS_BETWEEN(SYSDATE, data_contratacao) > 60 THEN 1.12
+        WHEN MONTHS_BETWEEN(SYSDATE, data_contratacao) > 60 THEN 1.25
+        WHEN MONTHS_BETWEEN(SYSDATE, data_contratacao) > 30 THEN 1.15
         ELSE 1.10
     END
 WHERE funcao != 'Coveiro'
@@ -145,11 +206,13 @@ AND salario < (
     WHERE funcao = 'Coveiro'
 );
 
+-- (Comandos utilizados: DELETE)
 -- Remove solicitações canceladas com mais de 5 anos
 DELETE FROM Solicitacao
 WHERE status_solicitacao = 'Cancelada'
 AND data_solicitacao < ADD_MONTHS(SYSDATE, -60);
 
+-- (Comandos utilizados: COUNT, AVG, GROUP BY, HAVING, ORDER BY)
 -- Relatório financeiro de serviços por período
 SELECT 
     sf.tipo,
@@ -165,27 +228,7 @@ GROUP BY sf.tipo, s.funcionario_id
 HAVING SUM(sf.valor) > 10000
 ORDER BY total DESC;
 
--- Análise de sepultamentos por localização específica
--- Agrupa sepultamentos por quadra e fila e incluí informação
--- sobre total de sepultamentos na fila e a idade média e máxima dos falecidos na data de sua morte
-SELECT 
-    j.quadra,
-    j.fila,
-    COUNT(*) AS total_sepultamentos,
-    TRUNC(AVG(idade)) AS idade_media,
-    MAX(idade) AS idade_maxima
-FROM (
-    SELECT 
-        s.jazigo_id,
-        TRUNC(MONTHS_BETWEEN(f.data_falecimento, p.data_nascimento)/12) AS idade
-    FROM Sepultamento s
-    JOIN Falecido f ON s.falecido_id = f.id
-    JOIN Pessoa p on s.falecido_id = p.id
-) sep_idades
-JOIN Jazigo j ON sep_idades.jazigo_id = j.id
-GROUP BY j.quadra, j.fila
-ORDER BY quadra, fila;
-
+-- (Comandos utilizados: UNION)
 -- Relatório combinado de falecidos e responsáveis por jazigo
 -- A ordenação garante que o responsável pelo jazigo apareça logo antes de todos os falecidos naquele jazigo
 -- Data relevante é data de sepultamento para falecido e data de ínicio da responsabilidade para responsável
@@ -208,6 +251,7 @@ JOIN ResponsabilidadeJazigo rj ON p.id = rj.responsavel_id
 JOIN Jazigo j ON rj.jazigo_id = j.id
 ORDER BY localizacao, tipo DESC;
 
+-- (Comandos utilizados: CREATE VIEW)
 -- Cria visão detalhada para gestão de jazigos
 CREATE VIEW vw_gestao_jazigos AS
 SELECT 
@@ -225,30 +269,85 @@ LEFT JOIN Sepultamento s ON j.id = s.jazigo_id
 LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
 GROUP BY j.id, j.quadra, j.fila, j.numero, j.capacidade, rj.responsavel_id;
 
+-- (Comandos utilizados: IS NOT NULL)
 -- Seleciona aqueles jazigos na view que não tiverem manutencão registrada
 SELECT * FROM VW_GESTAO_JAZIGOS
 WHERE ULTIMA_MANUTENCAO IS NOT NULL;
 
--- Relatório de jazigos com baixa ocupação
-SELECT 
-    j.*,
-    ocupacao.ocupados,
-    (j.capacidade - ocupacao.ocupados) AS disponiveis,
-    (SELECT nome FROM Pessoa WHERE id = rj.responsavel_id) AS responsavel
-FROM Jazigo j
-LEFT JOIN (
-    SELECT jazigo_id, COUNT(*) AS ocupados
-    FROM Sepultamento
-    GROUP BY jazigo_id
-) ocupacao ON j.id = ocupacao.jazigo_id
-LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
-WHERE ocupacao.ocupados < j.capacidade * 0.5
-AND j.id IN (
-    SELECT jazigo_id 
-    FROM Sepultamento 
-    WHERE data < ADD_MONTHS(SYSDATE, -60)
-);
+-- (Comandos utilizados: CREATE PROCEDURE)
+-- Atualiza status de jazigos sem manutenção recente
+CREATE OR REPLACE PROCEDURE atualizar_jazigos_sem_manutencao AS
+    CURSOR c_jazigos IS
+        SELECT j.id
+        FROM Jazigo j
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM ManutencaoJazigo mj
+            WHERE mj.jazigo_id = j.id
+            AND mj.data_inicio > ADD_MONTHS(SYSDATE, -24)
+        )
+        AND EXISTS (
+            SELECT 1
+            FROM Sepultamento s
+            WHERE s.jazigo_id = j.id
+        );
 
+    v_funcionario_id Funcionario.id%TYPE;
+BEGIN
+    -- Seleciona um funcionário aleatório
+    SELECT id INTO v_funcionario_id
+    FROM (
+        SELECT id FROM Funcionario ORDER BY DBMS_RANDOM.VALUE
+    )
+    WHERE ROWNUM = 1;
+
+    -- Faz a inserção para cada jazigo
+    FOR jazigo IN c_jazigos LOOP
+        INSERT INTO ManutencaoJazigo(jazigo_id, funcionario_id, motivo)
+        VALUES (jazigo.id, v_funcionario_id, 'Manutenção preventiva programada');
+    END LOOP;
+
+    COMMIT;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Erro ao atualizar jazigos: ' || SQLERRM);
+END atualizar_jazigos_sem_manutencao;
+/
+
+BEGIN
+    atualizar_jazigos_sem_manutencao;
+END;
+/
+
+-- (Comandos utilizados: CREATE FUNCTION)
+-- Calcula tempo médio entre solicitação e conclusão de serviços
+CREATE OR REPLACE FUNCTION calcular_tempo_medio_servico
+RETURN NUMBER IS
+    v_tempo_medio NUMBER;
+BEGIN
+    SELECT AVG(sf.data - s.data_solicitacao)
+    INTO v_tempo_medio
+    FROM Solicitacao s
+    JOIN ServicoFunerario sf ON s.servico_id = sf.id
+    WHERE s.status_solicitacao = 'Concluida';
+    
+    RETURN v_tempo_medio;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN NULL;
+    WHEN OTHERS THEN
+        RETURN NULL;
+END calcular_tempo_medio_servico;
+/
+DECLARE
+    v_tempo_medio NUMBER;
+BEGIN
+    v_tempo_medio := ROUND(calcular_tempo_medio_servico, 3);
+    DBMS_OUTPUT.PUT_LINE('Tempo médio: ' || v_tempo_medio || ' dias');
+END;
+/
 -- Relatório da produtividade de funcionários
 -- Dá uma nota dependendo da média de valor por solicitação que o funcionário gerou até o momento
 SELECT 
@@ -271,73 +370,48 @@ LEFT JOIN ServicoFunerario sf ON sf.id = s.servico_id
 GROUP BY f.id, pes.nome
 ORDER BY valor_total DESC, solicitacoes_totais DESC;
 
+-- (Comandos utilizados: COUNT, MAX, GROUP, HAVING, ORDER BY)
+-- Análise de sepultamentos por localização específica
+-- Agrupa sepultamentos por quadra e fila e incluí informação
+-- sobre total de sepultamentos na fila e a idade média e máxima dos falecidos na data de sua morte
+SELECT 
+    j.quadra,
+    j.fila,
+    COUNT(*) AS total_sepultamentos,
+    TRUNC(AVG(idade)) AS idade_media,
+    MAX(idade) AS idade_maxima
+FROM (
+    SELECT 
+        s.jazigo_id,
+        TRUNC(MONTHS_BETWEEN(f.data_falecimento, p.data_nascimento)/12) AS idade
+    FROM Sepultamento s
+    JOIN Falecido f ON s.falecido_id = f.id
+    JOIN Pessoa p on s.falecido_id = p.id
+) sep_idades
+JOIN Jazigo j ON sep_idades.jazigo_id = j.id
+GROUP BY j.quadra, j.fila
+ORDER BY quadra, fila;
 
--- Atualiza status de jazigos sem manutenção recente
-CREATE OR REPLACE PROCEDURE atualizar_jazigos_sem_manutencao AS
-    CURSOR c_jazigos IS
-        SELECT j.id
-        FROM Jazigo j
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM ManutencaoJazigo mj
-            WHERE mj.jazigo_id = j.id
-            AND mj.data_inicio > ADD_MONTHS(SYSDATE, -24)
-        )
-        AND EXISTS (
-            SELECT 1
-            FROM Sepultamento s
-            WHERE s.jazigo_id = j.id
-        );
-BEGIN
-    FOR jazigo IN c_jazigos LOOP
-        INSERT INTO ManutencaoJazigo(jazigo_id, funcionario_id, motivo)
-        VALUES (jazigo.id, 
-               (SELECT id FROM Funcionario WHERE funcao = 'Zelador' AND ROWNUM = 1),
-               'Manutenção preventiva programada');
-    END LOOP;
-    COMMIT;
-END atualizar_jazigos_sem_manutencao;
-/
+-- Relatório de jazigos com baixa ocupação
+SELECT 
+    j.*,
+    ocupacao.ocupados,
+    (j.capacidade - ocupacao.ocupados) AS disponiveis,
+    (SELECT nome FROM Pessoa WHERE id = rj.responsavel_id) AS responsavel
+FROM Jazigo j
+LEFT JOIN (
+    SELECT jazigo_id, COUNT(*) AS ocupados
+    FROM Sepultamento
+    GROUP BY jazigo_id
+) ocupacao ON j.id = ocupacao.jazigo_id
+LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
+WHERE ocupacao.ocupados < j.capacidade * 0.5
+AND j.id IN (
+    SELECT jazigo_id 
+    FROM Sepultamento 
+    WHERE data < ADD_MONTHS(SYSDATE, -60)
+);
 
--- Calcula tempo médio entre solicitação e conclusão de serviços
-CREATE OR REPLACE FUNCTION calcular_tempo_medio_servico
-RETURN NUMBER IS
-    v_tempo_medio NUMBER;
-BEGIN
-    SELECT AVG(sf.data - s.data_solicitacao)
-    INTO v_tempo_medio
-    FROM Solicitacao s
-    JOIN ServicoFunerario sf ON s.servico_id = sf.id
-    WHERE s.status_solicitacao = 'Concluida';
-    
-    RETURN v_tempo_medio;
-END calcular_tempo_medio_servico;
-/
-
--- Valida capacidade e responsável antes de inserir sepultamento
-CREATE OR REPLACE TRIGGER tr_valida_capacidade_jazigo
-BEFORE INSERT ON Sepultamento
-FOR EACH ROW
-DECLARE
-    v_ocupacao INT;
-    v_capacidade INT;
-    v_responsavel INT;
-BEGIN
-    SELECT j.capacidade, 
-           (SELECT COUNT(*) FROM Sepultamento s WHERE s.jazigo_id = :NEW.jazigo_id),
-           rj.responsavel_id
-    INTO v_capacidade, v_ocupacao, v_responsavel
-    FROM Jazigo j
-    LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
-    WHERE j.id = :NEW.jazigo_id;
-    
-    IF v_ocupacao >= v_capacidade THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Capacidade do jazigo excedida');
-    ELSIF v_responsavel IS NULL THEN
-        RAISE_APPLICATION_ERROR(-20002, 'Jazigo sem responsável designado');
-    END IF;
-END;
-/
 
 -- Exemplos de controle de acesso
 /*

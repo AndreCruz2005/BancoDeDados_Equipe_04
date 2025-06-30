@@ -1,11 +1,11 @@
 # Banco De Dados - 2025.1 - Equipe_04
 
--   André Vinícius **(avnc)**
--   Felipe Maran **(fma3)**
--   Guilherme Vinícius **(gvnb)**
--   João Pedro **(jpfs2)**
--   João Vitor **(jvab2)**
--   Tiago Henrique **(thmq)**
+- André Vinícius **(avnc)**
+- Felipe Maran **(fma3)**
+- Guilherme Vinícius **(gvnb)**
+- João Pedro **(jpfs2)**
+- João Vitor **(jvab2)**
+- Tiago Henrique **(thmq)**
 
 ## Construir e popular o banco de dados - AV3
 
@@ -59,7 +59,7 @@
 | CREATE PROCEDURE                    | ✅     |
 | CREATE FUNCTION                     | ✅     |
 | %TYPE                               | ✅     |
-| %ROWTYPE                            | ✅     |
+| %ROWTYPE                            | ✅\*   |
 | IF / ELSIF                          | ✅     |
 | CASE WHEN                           | ✅     |
 | LOOP / EXIT WHEN                    | ✅     |
@@ -68,8 +68,10 @@
 | SELECT … INTO                       | ✅     |
 | CURSOR (OPEN, FETCH, CLOSE)         | ✅     |
 | EXCEPTION WHEN                      | ✅     |
-| USO DE PARÂMETROS (IN, OUT, IN OUT) | ✅     |
-| CREATE OR REPLACE PACKAGE           | ✅     |
-| CREATE OR REPLACE PACKAGE BODY      | ✅     |
-| CREATE OR REPLACE TRIGGER (COMANDO) |        |
+| USO DE PARÂMETROS (IN, OUT, IN OUT) | ✅\*   |
+| CREATE OR REPLACE PACKAGE           | ✅\*   |
+| CREATE OR REPLACE PACKAGE BODY      | ✅\*   |
+| CREATE OR REPLACE TRIGGER (COMANDO) | ✅     |
 | CREATE OR REPLACE TRIGGER (LINHA)   | ✅     |
+
+\* Utilizado no código de povoamento
