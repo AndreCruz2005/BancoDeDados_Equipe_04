@@ -274,50 +274,84 @@ GROUP BY j.id, j.quadra, j.fila, j.numero, j.capacidade, rj.responsavel_id;
 SELECT * FROM VW_GESTAO_JAZIGOS
 WHERE ULTIMA_MANUTENCAO IS NOT NULL;
 
--- (Comandos utilizados: CREATE PROCEDURE)
--- Atualiza status de jazigos sem manutenção recente
-CREATE OR REPLACE PROCEDURE atualizar_jazigos_sem_manutencao AS
-    CURSOR c_jazigos IS
-        SELECT j.id
-        FROM Jazigo j
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM ManutencaoJazigo mj
-            WHERE mj.jazigo_id = j.id
-            AND mj.data_inicio > ADD_MONTHS(SYSDATE, -24)
+-- Comandos utilizados: CREATE PACKAGE, Procedure, Function, 
+CREATE OR REPLACE PACKAGE pkg_utils IS
+    PROCEDURE atualizar_jazigos_sem_manutencao;
+    FUNCTION calcular_tempo_medio_servico RETURN NUMBER;
+END;
+
+CREATE OR REPLACE PACKAGE BODY pkg_utils IS
+    -- Procedimento que atualiza status de jazigos sem manutenção recente
+    PROCEDURE atualizar_jazigos_sem_manutencao IS
+        CURSOR c_jazigos IS
+            SELECT j.id
+            FROM Jazigo j
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM ManutencaoJazigo mj
+                WHERE mj.jazigo_id = j.id
+                AND mj.data_inicio > ADD_MONTHS(SYSDATE, -24)
+            )
+            AND EXISTS (
+                SELECT 1
+                FROM Sepultamento s
+                WHERE s.jazigo_id = j.id
+            );
+
+        v_funcionario_id Funcionario.id%TYPE;
+    BEGIN
+        -- Seleciona um funcionário aleatório
+        SELECT id INTO v_funcionario_id
+        FROM (
+            SELECT id FROM Funcionario ORDER BY DBMS_RANDOM.VALUE
         )
-        AND EXISTS (
-            SELECT 1
-            FROM Sepultamento s
-            WHERE s.jazigo_id = j.id
-        );
+        WHERE ROWNUM = 1;
 
-    v_funcionario_id Funcionario.id%TYPE;
-BEGIN
-    -- Seleciona um funcionário aleatório
-    SELECT id INTO v_funcionario_id
-    FROM (
-        SELECT id FROM Funcionario ORDER BY DBMS_RANDOM.VALUE
-    )
-    WHERE ROWNUM = 1;
+        -- Faz a inserção para cada jazigo
+        FOR jazigo IN c_jazigos LOOP
+            INSERT INTO ManutencaoJazigo(jazigo_id, funcionario_id, motivo)
+            VALUES (jazigo.id, v_funcionario_id, 'Manutenção preventiva programada');
+        END LOOP;
 
-    -- Faz a inserção para cada jazigo
-    FOR jazigo IN c_jazigos LOOP
-        INSERT INTO ManutencaoJazigo(jazigo_id, funcionario_id, motivo)
-        VALUES (jazigo.id, v_funcionario_id, 'Manutenção preventiva programada');
-    END LOOP;
+        COMMIT;
 
-    COMMIT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Erro ao atualizar jazigos: ' || SQLERRM);
+    END atualizar_jazigos_sem_manutencao;
 
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('Erro ao atualizar jazigos: ' || SQLERRM);
-END atualizar_jazigos_sem_manutencao;
+    -- Função que calcula tempo médio entre solicitação e conclusão de serviços
+    FUNCTION calcular_tempo_medio_servico RETURN NUMBER IS
+        v_tempo_medio NUMBER;
+    BEGIN
+        SELECT AVG(sf.data - s.data_solicitacao)
+        INTO v_tempo_medio
+        FROM Solicitacao s
+        JOIN ServicoFunerario sf ON s.servico_id = sf.id
+        WHERE s.status_solicitacao = 'Concluida';
+        
+        RETURN v_tempo_medio;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RETURN NULL;
+        WHEN OTHERS THEN
+            RETURN NULL;
+    END calcular_tempo_medio_servico;
+
+END pkg_utils;
 /
 
 BEGIN
-    atualizar_jazigos_sem_manutencao;
+    pkg_utils.atualizar_jazigos_sem_manutencao;
+END;
+/
+
+DECLARE
+    v_tempo_medio NUMBER;
+BEGIN
+    v_tempo_medio := ROUND(pkg_utils.calcular_tempo_medio_servico, 3);
+    DBMS_OUTPUT.PUT_LINE('Tempo médio: ' || COALESCE(v_tempo_medio, 0) || ' dias');
 END;
 /
 
@@ -421,3 +455,4 @@ AND j.id IN (
 GRANT SELECT ON vw_gestao_jazigos TO gestor_cemiterio;
 REVOKE DELETE ON Sepultamento FROM atendente;
 */
+
