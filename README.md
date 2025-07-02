@@ -69,8 +69,8 @@
 | CURSOR (OPEN, FETCH, CLOSE)         | ✅     |
 | EXCEPTION WHEN                      | ✅     |
 | USO DE PARÂMETROS (IN, OUT, IN OUT) | ✅\*   |
-| CREATE OR REPLACE PACKAGE           | ✅\*   |
-| CREATE OR REPLACE PACKAGE BODY      | ✅\*   |
+| CREATE OR REPLACE PACKAGE           | ✅   |
+| CREATE OR REPLACE PACKAGE BODY      | ✅   |
 | CREATE OR REPLACE TRIGGER (COMANDO) | ✅     |
 | CREATE OR REPLACE TRIGGER (LINHA)   | ✅     |
 
