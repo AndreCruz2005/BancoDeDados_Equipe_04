@@ -270,7 +270,7 @@ LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
 GROUP BY j.id, j.quadra, j.fila, j.numero, j.capacidade, rj.responsavel_id;
 
 -- (Comandos utilizados: IS NOT NULL)
--- Seleciona aqueles jazigos na view que não tiverem manutencão registrada
+-- Seleciona aqueles jazigos na view que tiverem manutencão registrada
 SELECT * FROM VW_GESTAO_JAZIGOS
 WHERE ULTIMA_MANUTENCAO IS NOT NULL;
 
@@ -450,19 +450,19 @@ AND j.id IN (
 );
 
 -- (Comandos utilizados: %ROWTYPE, SELECT INTO, DBMS_OUTPUT)
--- Script para exibir os detalhes de um sepultamento aleatÃ³rio usando %ROWTYPE.
--- O %ROWTYPE cria uma variÃ¡vel do tipo registro que corresponde Ã  estrutura de uma linha da tabela Sepultamento,
--- simplificando a manipulaÃ§Ã£o dos dados recuperados.
+-- Script para exibir os detalhes de um sepultamento aleatório usando %ROWTYPE.
+-- O %ROWTYPE cria uma variável do tipo registro que corresponde à estrutura de uma linha da tabela Sepultamento,
+-- simplificando a manipulação dos dados recuperados.
 DECLARE
-    -- Declara uma variÃ¡vel de registro para armazenar uma linha completa da tabela Sepultamento.
+    -- Declara uma variável de registro para armazenar uma linha completa da tabela Sepultamento.
     v_sepultamento_rec Sepultamento%ROWTYPE;
 
-    -- VariÃ¡veis para armazenar informaÃ§Ãµes adicionais.
+    -- Variáveis para armazenar informações adicionais.
     v_nome_falecido Pessoa.nome%TYPE;
     v_local_jazigo VARCHAR2(100);
 
 BEGIN
-    -- Seleciona uma linha aleatÃ³ria da tabela Sepultamento e a armazena na variÃ¡vel de registro.
+    -- Seleciona uma linha aleatória da tabela Sepultamento e a armazena na variável de registro.
     SELECT *
     INTO v_sepultamento_rec
     FROM (
@@ -476,8 +476,8 @@ BEGIN
     FROM Pessoa
     WHERE id = v_sepultamento_rec.falecido_id;
 
-    -- Usando o jazigo_id do registro, busca os detalhes de localizaÃ§Ã£o na tabela Jazigo.
-    SELECT 'Quadra: ' || quadra || ', Fila: ' || fila || ', NÃºmero: ' || numero
+    -- Usando o jazigo_id do registro, busca os detalhes de localização na tabela Jazigo.
+    SELECT 'Quadra: ' || quadra || ', Fila: ' || fila || ', Número: ' || numero
     INTO v_local_jazigo
     FROM Jazigo
     WHERE id = v_sepultamento_rec.jazigo_id;
@@ -487,22 +487,20 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('Nome do Falecido: ' || v_nome_falecido);
     DBMS_OUTPUT.PUT_LINE('Data do Sepultamento: ' || TO_CHAR(v_sepultamento_rec.data, 'DD/MM/YYYY'));
     DBMS_OUTPUT.PUT_LINE('Tipo de Sepultamento: ' || v_sepultamento_rec.tipo);
-    DBMS_OUTPUT.PUT_LINE('LocalizaÃ§Ã£o do Jazigo: ' || v_local_jazigo);
+    DBMS_OUTPUT.PUT_LINE('Localização do Jazigo: ' || v_local_jazigo);
 
 EXCEPTION
-    -- Trata o caso de nÃ£o encontrar nenhum sepultamento na tabela.
+    -- Trata o caso de não encontrar nenhum sepultamento na tabela.
     WHEN NO_DATA_FOUND THEN
         DBMS_OUTPUT.PUT_LINE('Nenhum registro de sepultamento encontrado.');
-    -- Trata outros erros possÃ­veis.
+    -- Trata outros erros possíveis.
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('Ocorreu um erro: ' || SQLERRM);
 END;
 /
-
 
 -- Exemplos de controle de acesso
 /*
 GRANT SELECT ON vw_gestao_jazigos TO gestor_cemiterio;
 REVOKE DELETE ON Sepultamento FROM atendente;
 */
-
