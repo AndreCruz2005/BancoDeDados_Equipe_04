@@ -504,3 +504,76 @@ END;
 GRANT SELECT ON vw_gestao_jazigos TO gestor_cemiterio;
 REVOKE DELETE ON Sepultamento FROM atendente;
 */
+
+CREATE OR REPLACE PROCEDURE atualizar_status_solicitacao ( 
+    p_familiar_id       IN Solicitacao.familiar_id%TYPE, 
+    p_funcionario_id    IN Solicitacao.funcionario_id%TYPE, 
+    p_data_solicitacao  IN Solicitacao.data_solicitacao%TYPE, 
+    p_status            IN Solicitacao.status_solicitacao%TYPE, 
+    p_msg               IN OUT VARCHAR2, 
+    p_sucess            OUT NUMBER 
+) 
+IS 
+    v_status_atual Solicitacao.status_solicitacao%TYPE; 
+    v_proximo      Solicitacao.status_solicitacao%TYPE; 
+BEGIN 
+    -- Verifica se existe a solicitação e obtém o status atual 
+    SELECT status_solicitacao 
+      INTO v_status_atual 
+      FROM Solicitacao 
+     WHERE familiar_id      = p_familiar_id 
+       AND funcionario_id   = p_funcionario_id 
+       AND data_solicitacao = p_data_solicitacao; 
+ 
+    -- Determina o próximo status válido 
+    CASE v_status_atual 
+        WHEN 'Pagamento Pendente' THEN v_proximo := 'Em Andamento'; 
+        WHEN 'Em Andamento'         THEN v_proximo := 'Concluida'; 
+        ELSE v_proximo := NULL; 
+    END CASE; 
+ 
+    -- Verifica se a transição solicitada é válida 
+    IF p_status = v_proximo THEN 
+        -- transição sequencial permitida 
+        UPDATE Solicitacao 
+           SET status_solicitacao = p_status 
+         WHERE familiar_id      = p_familiar_id 
+           AND funcionario_id   = p_funcionario_id 
+           AND data_solicitacao = p_data_solicitacao; 
+ 
+        p_sucess := 1; 
+        p_msg := 'Status atualizado de ' 
+                 || v_status_atual 
+                 || ' para ' 
+                 || p_status; 
+ 
+    ELSIF p_status = 'Cancelada' THEN 
+        -- transição para cancelamento sempre permitida 
+        UPDATE Solicitacao 
+           SET status_solicitacao = p_status 
+         WHERE familiar_id      = p_familiar_id 
+           AND funcionario_id   = p_funcionario_id 
+           AND data_solicitacao = p_data_solicitacao; 
+ 
+        p_sucess := 1; 
+        p_msg := 'Solicitação cancelada com sucesso.'; 
+ 
+    ELSE 
+        -- transição inválida 
+        p_sucess := 0; 
+        p_msg := 'Transição de status de "' 
+                 || v_status_atual 
+                 || '" para "' 
+                 || p_status 
+                 || '" não é permitida.'; 
+    END IF; 
+ 
+EXCEPTION 
+    WHEN NO_DATA_FOUND THEN 
+        p_sucess := 0; 
+        p_msg := 'Solicitação não encontrada.'; 
+ 
+    WHEN OTHERS THEN 
+        p_sucess := 0; 
+        p_msg := 'Erro: ' || SQLERRM; 
+END;/
