@@ -52,6 +52,197 @@ BEGIN
 END;
 /
 
+-- Comandos utilizados: CREATE PACKAGE, Procedure, Function, 
+CREATE OR REPLACE PACKAGE pkg_utils IS
+    PROCEDURE atualizar_jazigos_sem_manutencao;
+    FUNCTION calcular_tempo_medio_servico RETURN NUMBER;
+    PROCEDURE atualizar_status_solicitacao ( 
+        p_familiar_id       IN Solicitacao.familiar_id%TYPE, 
+        p_funcionario_id    IN Solicitacao.funcionario_id%TYPE, 
+        p_data_solicitacao  IN Solicitacao.data_solicitacao%TYPE, 
+        p_status            IN Solicitacao.status_solicitacao%TYPE, 
+        p_msg               IN OUT VARCHAR2, 
+        p_sucess            OUT NUMBER 
+    ); 
+END;
+
+CREATE OR REPLACE PACKAGE BODY pkg_utils IS
+    -- Procedimento que atualiza status de jazigos sem manutenção recente
+    PROCEDURE atualizar_jazigos_sem_manutencao IS
+        CURSOR c_jazigos IS
+            SELECT j.id
+            FROM Jazigo j
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM ManutencaoJazigo mj
+                WHERE mj.jazigo_id = j.id
+                AND mj.data_inicio > ADD_MONTHS(SYSDATE, -24)
+            )
+            AND EXISTS (
+                SELECT 1
+                FROM Sepultamento s
+                WHERE s.jazigo_id = j.id
+            );
+
+        v_funcionario_id Funcionario.id%TYPE;
+    BEGIN
+        -- Seleciona um funcionário aleatório
+        SELECT id INTO v_funcionario_id
+        FROM (
+            SELECT id FROM Funcionario ORDER BY DBMS_RANDOM.VALUE
+        )
+        WHERE ROWNUM = 1;
+
+        -- Faz a inserção para cada jazigo
+        FOR jazigo IN c_jazigos LOOP
+            INSERT INTO ManutencaoJazigo(jazigo_id, funcionario_id, motivo)
+            VALUES (jazigo.id, v_funcionario_id, 'Manutenção preventiva programada');
+        END LOOP;
+
+        COMMIT;
+
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Erro ao atualizar jazigos: ' || SQLERRM);
+    END atualizar_jazigos_sem_manutencao;
+
+    -- Função que calcula tempo médio entre solicitação e conclusão de serviços
+    FUNCTION calcular_tempo_medio_servico RETURN NUMBER IS
+        v_tempo_medio NUMBER;
+    BEGIN
+        SELECT AVG(sf.data - s.data_solicitacao)
+        INTO v_tempo_medio
+        FROM Solicitacao s
+        JOIN ServicoFunerario sf ON s.servico_id = sf.id
+        WHERE s.status_solicitacao = 'Concluida';
+        
+        RETURN v_tempo_medio;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RETURN NULL;
+        WHEN OTHERS THEN
+            RETURN NULL;
+    END calcular_tempo_medio_servico;
+
+    -- (Comandos utilizados: IN, OUT, IN OUT, CREATE PROCEDURE, %TYPE, EXCEPTION)
+    -- Procedure para atualizar o status de uma solicitação com validação e error handling
+    PROCEDURE atualizar_status_solicitacao ( 
+        p_familiar_id       IN Solicitacao.familiar_id%TYPE, 
+        p_funcionario_id    IN Solicitacao.funcionario_id%TYPE, 
+        p_data_solicitacao  IN Solicitacao.data_solicitacao%TYPE, 
+        p_status            IN Solicitacao.status_solicitacao%TYPE, 
+        p_msg               IN OUT VARCHAR2, 
+        p_sucess            OUT NUMBER 
+    ) 
+    IS 
+        v_status_atual Solicitacao.status_solicitacao%TYPE; 
+        v_proximo      Solicitacao.status_solicitacao%TYPE; 
+    BEGIN 
+        -- Verifica se existe a solicitação e obtém o status atual 
+        SELECT status_solicitacao 
+        INTO v_status_atual 
+        FROM Solicitacao 
+        WHERE familiar_id      = p_familiar_id 
+        AND funcionario_id   = p_funcionario_id 
+        AND data_solicitacao = p_data_solicitacao; 
+    
+        -- Determina o próximo status válido 
+        CASE v_status_atual 
+            WHEN 'Pagamento Pendente' THEN v_proximo := 'Em Andamento'; 
+            WHEN 'Em Andamento'         THEN v_proximo := 'Concluida'; 
+            ELSE v_proximo := NULL; 
+        END CASE; 
+    
+        -- Verifica se a transição solicitada é válida 
+        IF p_status = v_proximo THEN 
+            -- transição sequencial permitida 
+            UPDATE Solicitacao 
+            SET status_solicitacao = p_status 
+            WHERE familiar_id      = p_familiar_id 
+            AND funcionario_id   = p_funcionario_id 
+            AND data_solicitacao = p_data_solicitacao; 
+    
+            p_sucess := 1; 
+            p_msg := 'Status atualizado de ' || v_status_atual || ' para ' || p_status; 
+    
+        ELSIF p_status = 'Cancelada' THEN 
+            -- transição para cancelamento sempre permitida 
+            UPDATE Solicitacao 
+            SET status_solicitacao = p_status 
+            WHERE familiar_id      = p_familiar_id 
+            AND funcionario_id   = p_funcionario_id 
+            AND data_solicitacao = p_data_solicitacao; 
+    
+            p_sucess := 1; 
+            p_msg := 'Solicitação cancelada com sucesso.'; 
+    
+        ELSE 
+            -- transição inválida 
+            p_sucess := 0; 
+            p_msg := 'Transição de status de "' || v_status_atual || '" para "' || p_status || '" não é permitida.'; 
+        END IF; 
+    
+    EXCEPTION 
+        WHEN NO_DATA_FOUND THEN 
+            p_sucess := 0; 
+            p_msg := 'Solicitação não encontrada.'; 
+    
+        WHEN OTHERS THEN 
+            p_sucess := 0; 
+            p_msg := 'Erro: ' || SQLERRM;
+    END atualizar_status_solicitacao; 
+END pkg_utils;
+/
+
+-- (Comandos utilizados: Bloco anônimo)
+-- Testa procedures
+BEGIN
+    pkg_utils.atualizar_jazigos_sem_manutencao;
+END;
+/
+DECLARE
+    v_tempo_medio NUMBER;
+BEGIN
+    v_tempo_medio := ROUND(pkg_utils.calcular_tempo_medio_servico, 3);
+    DBMS_OUTPUT.PUT_LINE('Tempo médio: ' || COALESCE(v_tempo_medio, 0) || ' dias');
+END;
+/
+
+-- (Comandos utlizados: %ROWTYPE, EXCEPTION)
+-- Bloco para testar a procedure. Tenta atualizar uma solicitação aleatória para 'Em andamento'
+DECLARE
+    v_msg VARCHAR2(200);
+    v_sucess NUMBER;
+
+    v_solicitacao Solicitacao%ROWTYPE;
+BEGIN
+    SELECT * INTO v_solicitacao FROM (
+        SELECT * 
+        FROM Solicitacao
+        ORDER BY DBMS_RANDOM.VALUE
+    )
+    WHERE ROWNUM = 1;
+
+    pkg_utils.atualizar_status_solicitacao(
+        v_solicitacao.familiar_id,
+        v_solicitacao.funcionario_id,
+        v_solicitacao.data_solicitacao,
+        'Em Andamento', 
+        v_msg,
+        v_sucess
+    );
+
+    -- Exibe o resultado
+    DBMS_OUTPUT.PUT_LINE('Sucesso: ' || v_sucess);
+    DBMS_OUTPUT.PUT_LINE('Mensagem: ' || v_msg);
+
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Erro inesperado: ' || SQLERRM);
+END;
+/
+
 -- (Comandos utilizados: SELECT, FROM, WHERE, JOIN, ORDER BY, BETWEEN)
 -- Relatório de Sepultamentos por Período
 -- Seleciona informações sobre todos os sepultamentos ocorridos há mais de 5 anos e há menos de 100 anos
@@ -274,87 +465,6 @@ GROUP BY j.id, j.quadra, j.fila, j.numero, j.capacidade, rj.responsavel_id;
 SELECT * FROM VW_GESTAO_JAZIGOS
 WHERE ULTIMA_MANUTENCAO IS NOT NULL;
 
--- Comandos utilizados: CREATE PACKAGE, Procedure, Function, 
-CREATE OR REPLACE PACKAGE pkg_utils IS
-    PROCEDURE atualizar_jazigos_sem_manutencao;
-    FUNCTION calcular_tempo_medio_servico RETURN NUMBER;
-END;
-
-CREATE OR REPLACE PACKAGE BODY pkg_utils IS
-    -- Procedimento que atualiza status de jazigos sem manutenção recente
-    PROCEDURE atualizar_jazigos_sem_manutencao IS
-        CURSOR c_jazigos IS
-            SELECT j.id
-            FROM Jazigo j
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM ManutencaoJazigo mj
-                WHERE mj.jazigo_id = j.id
-                AND mj.data_inicio > ADD_MONTHS(SYSDATE, -24)
-            )
-            AND EXISTS (
-                SELECT 1
-                FROM Sepultamento s
-                WHERE s.jazigo_id = j.id
-            );
-
-        v_funcionario_id Funcionario.id%TYPE;
-    BEGIN
-        -- Seleciona um funcionário aleatório
-        SELECT id INTO v_funcionario_id
-        FROM (
-            SELECT id FROM Funcionario ORDER BY DBMS_RANDOM.VALUE
-        )
-        WHERE ROWNUM = 1;
-
-        -- Faz a inserção para cada jazigo
-        FOR jazigo IN c_jazigos LOOP
-            INSERT INTO ManutencaoJazigo(jazigo_id, funcionario_id, motivo)
-            VALUES (jazigo.id, v_funcionario_id, 'Manutenção preventiva programada');
-        END LOOP;
-
-        COMMIT;
-
-    EXCEPTION
-        WHEN OTHERS THEN
-            ROLLBACK;
-            DBMS_OUTPUT.PUT_LINE('Erro ao atualizar jazigos: ' || SQLERRM);
-    END atualizar_jazigos_sem_manutencao;
-
-    -- Função que calcula tempo médio entre solicitação e conclusão de serviços
-    FUNCTION calcular_tempo_medio_servico RETURN NUMBER IS
-        v_tempo_medio NUMBER;
-    BEGIN
-        SELECT AVG(sf.data - s.data_solicitacao)
-        INTO v_tempo_medio
-        FROM Solicitacao s
-        JOIN ServicoFunerario sf ON s.servico_id = sf.id
-        WHERE s.status_solicitacao = 'Concluida';
-        
-        RETURN v_tempo_medio;
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RETURN NULL;
-        WHEN OTHERS THEN
-            RETURN NULL;
-    END calcular_tempo_medio_servico;
-
-END pkg_utils;
-/
-
-BEGIN
-    pkg_utils.atualizar_jazigos_sem_manutencao;
-END;
-/
-
-DECLARE
-    v_tempo_medio NUMBER;
-BEGIN
-    v_tempo_medio := ROUND(pkg_utils.calcular_tempo_medio_servico, 3);
-    DBMS_OUTPUT.PUT_LINE('Tempo médio: ' || COALESCE(v_tempo_medio, 0) || ' dias');
-END;
-/
-
 -- (Comandos utilizados: CREATE FUNCTION, EXCEPTION)
 -- Calcula tempo médio entre solicitação e conclusão de serviços
 CREATE OR REPLACE FUNCTION calcular_tempo_medio_servico
@@ -406,50 +516,7 @@ LEFT JOIN ServicoFunerario sf ON sf.id = s.servico_id
 GROUP BY f.id, pes.nome
 ORDER BY valor_total DESC, solicitacoes_totais DESC;
 
--- (Comandos utilizados: COUNT, MAX, GROUP, HAVING, ORDER BY)
--- Análise de sepultamentos por localização específica
--- Agrupa sepultamentos por quadra e fila e incluí informação
--- sobre total de sepultamentos na fila e a idade média e máxima dos falecidos na data de sua morte
-SELECT 
-    j.quadra,
-    j.fila,
-    COUNT(*) AS total_sepultamentos,
-    TRUNC(AVG(idade)) AS idade_media,
-    MAX(idade) AS idade_maxima
-FROM (
-    SELECT 
-        s.jazigo_id,
-        TRUNC(MONTHS_BETWEEN(f.data_falecimento, p.data_nascimento)/12) AS idade
-    FROM Sepultamento s
-    JOIN Falecido f ON s.falecido_id = f.id
-    JOIN Pessoa p on s.falecido_id = p.id
-) sep_idades
-JOIN Jazigo j ON sep_idades.jazigo_id = j.id
-GROUP BY j.quadra, j.fila
-ORDER BY quadra, fila;
-
--- (Comandos utilizados: LEFT JOIN, GROUP BY)
--- Seleciona jazigos com menos de 50% de ocupação e com sepultamentos mais antigos que 5 anos
-SELECT 
-    j.*,
-    ocupacao.ocupados,
-    (j.capacidade - ocupacao.ocupados) AS disponiveis,
-    (SELECT nome FROM Pessoa WHERE id = rj.responsavel_id) AS responsavel
-FROM Jazigo j
-LEFT JOIN (
-    SELECT jazigo_id, COUNT(*) AS ocupados
-    FROM Sepultamento
-    GROUP BY jazigo_id
-) ocupacao ON j.id = ocupacao.jazigo_id
-LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
-WHERE ocupacao.ocupados < j.capacidade * 0.5
-AND j.id IN (
-    SELECT jazigo_id 
-    FROM Sepultamento 
-    WHERE data < ADD_MONTHS(SYSDATE, -60)
-);
-
--- (Comandos utilizados: %ROWTYPE, SELECT INTO, DBMS_OUTPUT)
+-- (Comandos utilizados: %ROWTYPE, SELECT INTO, DBMS_OUTPUT, EXCEPTION)
 -- Script para exibir os detalhes de um sepultamento aleatório usando %ROWTYPE.
 -- O %ROWTYPE cria uma variável do tipo registro que corresponde à estrutura de uma linha da tabela Sepultamento,
 -- simplificando a manipulação dos dados recuperados.
@@ -499,81 +566,51 @@ EXCEPTION
 END;
 /
 
+-- (Comandos utilizados: COUNT, MAX, GROUP, HAVING, ORDER BY)
+-- Análise de sepultamentos por localização específica
+-- Agrupa sepultamentos por quadra e fila e incluí informação
+-- sobre total de sepultamentos na fila e a idade média e máxima dos falecidos na data de sua morte
+SELECT 
+    j.quadra,
+    j.fila,
+    COUNT(*) AS total_sepultamentos,
+    TRUNC(AVG(idade)) AS idade_media,
+    MAX(idade) AS idade_maxima
+FROM (
+    SELECT 
+        s.jazigo_id,
+        TRUNC(MONTHS_BETWEEN(f.data_falecimento, p.data_nascimento)/12) AS idade
+    FROM Sepultamento s
+    JOIN Falecido f ON s.falecido_id = f.id
+    JOIN Pessoa p on s.falecido_id = p.id
+) sep_idades
+JOIN Jazigo j ON sep_idades.jazigo_id = j.id
+GROUP BY j.quadra, j.fila
+ORDER BY quadra, fila;
+
+-- (Comandos utilizados: LEFT JOIN, GROUP BY)
+-- Seleciona jazigos com menos de 50% de ocupação e com sepultamentos mais antigos que 5 anos
+SELECT 
+    j.*,
+    ocupacao.ocupados,
+    (j.capacidade - ocupacao.ocupados) AS disponiveis,
+    (SELECT nome FROM Pessoa WHERE id = rj.responsavel_id) AS responsavel
+FROM Jazigo j
+LEFT JOIN (
+    SELECT jazigo_id, COUNT(*) AS ocupados
+    FROM Sepultamento
+    GROUP BY jazigo_id
+) ocupacao ON j.id = ocupacao.jazigo_id
+LEFT JOIN ResponsabilidadeJazigo rj ON j.id = rj.jazigo_id
+WHERE ocupacao.ocupados < j.capacidade * 0.5
+AND j.id IN (
+    SELECT jazigo_id 
+    FROM Sepultamento 
+    WHERE data < ADD_MONTHS(SYSDATE, -60)
+);
+
 -- Exemplos de controle de acesso
 /*
 GRANT SELECT ON vw_gestao_jazigos TO gestor_cemiterio;
 REVOKE DELETE ON Sepultamento FROM atendente;
 */
-
-CREATE OR REPLACE PROCEDURE atualizar_status_solicitacao ( 
-    p_familiar_id       IN Solicitacao.familiar_id%TYPE, 
-    p_funcionario_id    IN Solicitacao.funcionario_id%TYPE, 
-    p_data_solicitacao  IN Solicitacao.data_solicitacao%TYPE, 
-    p_status            IN Solicitacao.status_solicitacao%TYPE, 
-    p_msg               IN OUT VARCHAR2, 
-    p_sucess            OUT NUMBER 
-) 
-IS 
-    v_status_atual Solicitacao.status_solicitacao%TYPE; 
-    v_proximo      Solicitacao.status_solicitacao%TYPE; 
-BEGIN 
-    -- Verifica se existe a solicitação e obtém o status atual 
-    SELECT status_solicitacao 
-      INTO v_status_atual 
-      FROM Solicitacao 
-     WHERE familiar_id      = p_familiar_id 
-       AND funcionario_id   = p_funcionario_id 
-       AND data_solicitacao = p_data_solicitacao; 
- 
-    -- Determina o próximo status válido 
-    CASE v_status_atual 
-        WHEN 'Pagamento Pendente' THEN v_proximo := 'Em Andamento'; 
-        WHEN 'Em Andamento'         THEN v_proximo := 'Concluida'; 
-        ELSE v_proximo := NULL; 
-    END CASE; 
- 
-    -- Verifica se a transição solicitada é válida 
-    IF p_status = v_proximo THEN 
-        -- transição sequencial permitida 
-        UPDATE Solicitacao 
-           SET status_solicitacao = p_status 
-         WHERE familiar_id      = p_familiar_id 
-           AND funcionario_id   = p_funcionario_id 
-           AND data_solicitacao = p_data_solicitacao; 
- 
-        p_sucess := 1; 
-        p_msg := 'Status atualizado de ' 
-                 || v_status_atual 
-                 || ' para ' 
-                 || p_status; 
- 
-    ELSIF p_status = 'Cancelada' THEN 
-        -- transição para cancelamento sempre permitida 
-        UPDATE Solicitacao 
-           SET status_solicitacao = p_status 
-         WHERE familiar_id      = p_familiar_id 
-           AND funcionario_id   = p_funcionario_id 
-           AND data_solicitacao = p_data_solicitacao; 
- 
-        p_sucess := 1; 
-        p_msg := 'Solicitação cancelada com sucesso.'; 
- 
-    ELSE 
-        -- transição inválida 
-        p_sucess := 0; 
-        p_msg := 'Transição de status de "' 
-                 || v_status_atual 
-                 || '" para "' 
-                 || p_status 
-                 || '" não é permitida.'; 
-    END IF; 
- 
-EXCEPTION 
-    WHEN NO_DATA_FOUND THEN 
-        p_sucess := 0; 
-        p_msg := 'Solicitação não encontrada.'; 
- 
-    WHEN OTHERS THEN 
-        p_sucess := 0; 
-        p_msg := 'Erro: ' || SQLERRM; 
-END;/
