@@ -1,3 +1,5 @@
+import db from "../config/db.js";
+
 const clubeAdversarioSchema = new db.Schema({
     nome: { type: String, required: true },
     sigla: { type: String, required: true },
