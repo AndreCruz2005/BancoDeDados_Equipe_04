@@ -1,10 +1,8 @@
+require('dotenv').config(); 
 const mongoose = require("mongoose");
 
 mongoose
-    .connect("mongodb://localhost:27017/sportsDB", {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    })
+    .connect(process.env.DATABASE_URI)
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.error("MongoDB connection error:", err));
 

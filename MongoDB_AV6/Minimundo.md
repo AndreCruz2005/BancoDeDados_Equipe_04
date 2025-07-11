@@ -48,12 +48,12 @@ Um clube de futebol.
 -   Tipo de Sócio
 -   Pagamento Mensal
 
-#### 3. Contrato
+#### 2. Contrato
 
 -   ID
 -   ID da Pessoa
 -   ID de Equipe (Se for do nosso clube)
--   ID do Clube (Se for de outro time)
+-   ID do Clube (Se for de outro clube)
 -   Tipo (Treinador, Jogador)
 -   Início
 -   Fim
@@ -62,7 +62,7 @@ Um clube de futebol.
 -   Salário Mensal
 -   Stauts (Ativo, Emprestado, Rescindido, Expirado, etc...)
 
-#### 4. Clubes Adversários
+#### 3. Clubes Adversários
 
 -   ID
 -   Nome
@@ -71,7 +71,7 @@ Um clube de futebol.
 -   Estado
 -   Cidade
 
-#### 5. Partidas
+#### 4. Partidas
 
 -   ID
 -   ID do Adversário
@@ -88,7 +88,7 @@ Um clube de futebol.
 -   Quantidade Espectadores
 -   Receita Gerada
 
-#### 6. Campeonato
+#### 5. Campeonato
 
 -   ID
 -   Nome
@@ -100,13 +100,13 @@ Um clube de futebol.
 -   Valor Prêmios
 -   Trófeis
 
-#### 7. Equipes
+#### 6. Equipes
 
 -   ID
 -   Nome
 -   CriadaEm
 
-#### 8. Lesões
+#### 7. Lesões
 
 -   ID
 -   ID de Jogador
@@ -116,7 +116,7 @@ Um clube de futebol.
 -   DataRetorno
 -   Status
 
-#### 9. Treinamentos
+#### 8. Treinamentos
 
 -   ID
 -   Jogadores
@@ -125,7 +125,7 @@ Um clube de futebol.
 -   Duração
 -   Local
 
-#### 10. Patrocínios
+#### 9. Patrocínios
 
 -   ID
 -   Nome
@@ -140,7 +140,7 @@ Um clube de futebol.
 -   Pagamento Único
 -   Status
 
-#### 11. Estádios
+#### 10. Estádios
 
 -   ID
 -   Nome
@@ -151,7 +151,7 @@ Um clube de futebol.
 -   AdquiridoEm
 -   Custos Mensais
 
-#### 12. Punições
+#### 11. Punições
 
 -   ID
 -   ID da Partida

@@ -2,12 +2,12 @@ import Pessoa from "./../../models/Pessoas.js";
 
 async function inserirPessoa() {
     // Gera número aleatório de documento
-    const documento = Array.from({ length: 11 }, () => {
-        Math.floor(Math.random() * 10);
-    }).join("");
+    const documento = Array.from({ length: 11 }, () => (
+        Math.floor(Math.random() * 10)
+    )).join("");
 
     const novaPessoa = new Pessoa({
-        documento: "1024030223404",
+        _id: documento,
         nome: "André Cruz",
         nacionalidade: "Brasileira",
         dataNascimento: new Date("2005-12-16"),
