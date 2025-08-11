@@ -1,42 +1,56 @@
-### Pré-requisitos
+## Requerimentos
 
--   Node.js: [https://nodejs.org/](https://nodejs.org/)
--   MongoDB Community Server: [https://www.mongodb.com/try/download/community](https://www.mongodb.com/try/download/community)
+1. Ter o MongoDB instaldo e rodando localmente e o MongoDB Shell configurado nas suas variáveis de conta.
+2. Opcionalmente, gere um povoamento aleatório novo executando o script `gerar_povamento.py`:
 
-### Executar projeto
-
-1. Após clonar o projeto, navegue até esse diretório e instale as dependências:
-
-```bash
-cd MongoDB_AV6
-npm install
+```
+python MongoDB_AV6/gerar_povamento.py
 ```
 
-2. Inicie o MongoDB
+3. Execute o script `povoamento.js` para criar e povoar o banco de dados `gerenciamento_times_esportivos`:
 
--   Abra o MongoDB Compass para garantir que o servidor está rodando.
--   Verifique que há uma conexão ativa com `mongodb://localhost:27017`.
-
-Alternativamente, para iniciar manualmente:
-
--   No Windows:
-    Vá até a pasta onde o MongoDB foi instalado e execute o `mongod.exe`.
-
--   No Linux/macOS:
-    Execute no terminal:
-
-```bash
-mongod
+```
+mongosh MongoDB_AV6/povoamento.js
 ```
 
-3. Depois que o MongoDB estiver rodando, neste diretório execute no terminal algum script, como por exemplo:
+4. Excute o script `consultas.js` para realizar as consultas no banco de dados:
 
-```bash
-node scripts/povoamento/inserirPessoas.js
+```
+mongosh MongoDB_AV6/consultas.js
 ```
 
-Se você quiser que o servidor reinicie automaticamente ao salvar o arquivo:
+## Checklist AV6
 
-```bash
-npx nodemon scripts/povoamento/inserirPessoas.js
-```
+| #   | Comando                       | Usado |
+| --- | ----------------------------- | ----- |
+| 1   | USE                           | ✅    |
+| 2   | FIND                          |       |
+| 3   | SIZE                          |       |
+| 4   | AGGREGATE                     | ✅    |
+| 5   | MATCH                         |       |
+| 6   | PROJECT                       |       |
+| 7   | GTE                           |       |
+| 8   | GROUP                         | ✅    |
+| 9   | SUM                           | ✅    |
+| 10  | COUNT (COUNTDOCUMENTS)        |       |
+| 11  | MAX                           |       |
+| 12  | AVG                           |       |
+| 13  | EXISTS                        |       |
+| 14  | SORT                          | ✅    |
+| 15  | LIMIT                         |       |
+| 16  | $WHERE                        |       |
+| 17  | MAPREDUCE                     |       |
+| 18  | FUNCTION                      |       |
+| 19  | PRETTY                        |       |
+| 20  | ALL                           |       |
+| 21  | SET                           |       |
+| 22  | TEXT                          |       |
+| 23  | SEARCH                        |       |
+| 24  | FILTER                        |       |
+| 25  | UPDATE (UPDATEONE/UPDATEMANY) |       |
+| 26  | SAVE (UPDATEONE/INSERTONE)    |       |
+| 27  | RENAMECOLLECTION              |       |
+| 28  | COND                          |       |
+| 29  | LOOKUP                        |       |
+| 30  | FINDONE                       |       |
+| 31  | ADDTOSET                      |       |

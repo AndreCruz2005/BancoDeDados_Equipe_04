@@ -12,7 +12,6 @@ Um clube de futebol.
 -   Nome
 -   Nacionalidade
 -   Data Nascimento
--   Endereço
 -   Emails
 -   Telefones
 -   Sexo
@@ -45,22 +44,18 @@ Um clube de futebol.
 
 -   ID da Pessoa
 -   SócioDesde
--   Tipo de Sócio
 -   Pagamento Mensal
 
 #### 2. Contrato
 
 -   ID
 -   ID da Pessoa
--   ID de Equipe (Se for do nosso clube)
 -   ID do Clube (Se for de outro clube)
 -   Tipo (Treinador, Jogador)
 -   Início
 -   Fim
--   Status
--   Pagamento Único
 -   Salário Mensal
--   Stauts (Ativo, Emprestado, Rescindido, Expirado, etc...)
+-   Stauts (Ativo, Rescindido, Expirado, etc...)
 
 #### 3. Clubes Adversários
 
@@ -68,19 +63,13 @@ Um clube de futebol.
 -   Nome
 -   Sigla
 -   País
--   Estado
--   Cidade
 
 #### 4. Partidas
 
--   ID
 -   ID do Adversário
--   ID do Campeonato
--   ID da Equipe
 -   ID de Jogadores que jogaram (Multivalorado)
 -   ID de Jogadores na reserva (Multivalorado)
--   DataHora
--   Local
+-   Data
 -   Duração
 -   GolsEquipe
 -   GolsAdversario
@@ -98,65 +87,27 @@ Um clube de futebol.
 -   Data Fim
 -   Resultado
 -   Valor Prêmios
--   Trófeis
 
-#### 6. Equipes
+#### 6. Lesões
 
--   ID
--   Nome
--   CriadaEm
-
-#### 7. Lesões
-
--   ID
--   ID de Jogador
--   Tipo
+-   ID da Partida
 -   Gravidade
 -   DataLesionamento
 -   DataRetorno
--   Status
 
-#### 8. Treinamentos
+#### 7. Patrocínios
 
--   ID
--   Jogadores
--   Treinadores
--   DataHora
--   Duração
--   Local
-
-#### 9. Patrocínios
-
--   ID
+-   CNPJ (ID)
 -   Nome
--   CNPJ
 -   Contato
--   Endereço
--   Equipes
 -   Inicio
 -   Fim
--   Pagamento Mensal
--   Pagamento Anual
--   Pagamento Único
--   Status
+-   Pagamento
 
-#### 10. Estádios
-
--   ID
--   Nome
--   Tamanho
--   Endereço
--   Tipo
--   Capacidade
--   AdquiridoEm
--   Custos Mensais
-
-#### 11. Punições
+#### 8. Punições
 
 -   ID
 -   ID da Partida
 -   Tipo (Cartão amarelo, cartão vermeho, etc...)
--   Motivo
 -   Data
 -   Jogos Suspenso
--   Status
