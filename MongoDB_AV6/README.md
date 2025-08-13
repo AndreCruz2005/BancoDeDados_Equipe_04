@@ -23,39 +23,44 @@ mongosh MongoDB_AV6/consultas.js
 
 #### 1. Pessoa
 
--   N° Documento (ID)
--   Nome
--   Nacionalidade
--   Data Nascimento
--   Emails
--   Telefones
--   Sexo
+- N° Documento (ID)
+- Nome
+- Nacionalidade
+- Data Nascimento
+- Emails
+- Telefones
+- Sexo
 
 #### 2. Jogador
--   ID da Pessoa
--   Contratos
--   Lesões
--   Punições 
--   Altura
--   Peso
+
+- ID da Pessoa
+- Contratos
+- Lesões
+- Punições
+- Altura
+- Peso
 
 #### 2.1. Lesões
+
 - ID da Partida em que ocorreu
 - Data de lesão
 - Gravidade da lesão
 - Data de retorno do jogador
 
 #### 2.2. Punições
+
 - ID da Partida em que ocorreu
 - Tipo de punição
 - Data da punição
 - Quantidade de jogos que o jogador ficará suspenso
 
 #### 3. Treinador
+
 - ID da Pessoa
 - Contratos
 
 #### 2.3 / 3.1. Contratos
+
 - Clube (Somente especificado se for outro clube e não o nosso)
 - Tipo (Jogador/Treinador)
 - Data de Início
@@ -64,6 +69,7 @@ mongosh MongoDB_AV6/consultas.js
 - Status (Ativo/Encerrado)
 
 #### 4. Funcionário
+
 - ID da Pessoa
 - ID de Gerente
 - Função
@@ -73,17 +79,20 @@ mongosh MongoDB_AV6/consultas.js
 - Razão por fim de contrato
 
 #### 5. Sócio
+
 - ID da Pessoa
 - Data em que começou a ser sócio
 - Pagamento mensal
 
 #### 6. Clubes adversários
+
 - ID
 - Nome
 - Sigla
 - País
 
 #### 7. Patrocínios
+
 - CNPJ (ID)
 - Nome
 - Email
@@ -92,6 +101,7 @@ mongosh MongoDB_AV6/consultas.js
 - Data de término
 
 #### 8. Campeonatos
+
 - ID
 - Nome
 - País
@@ -102,6 +112,7 @@ mongosh MongoDB_AV6/consultas.js
 - Partidas
 
 #### 8.1 Partida
+
 - ID
 - Clube adversário
 - Treinador
@@ -121,16 +132,16 @@ mongosh MongoDB_AV6/consultas.js
 | --- | ----------------------------- | ----- |
 | 1   | USE                           | ✅    |
 | 2   | FIND                          |       |
-| 3   | SIZE                          |       |
+| 3   | SIZE                          | ✅    |
 | 4   | AGGREGATE                     | ✅    |
-| 5   | MATCH                         |       |
-| 6   | PROJECT                       |       |
-| 7   | GTE                           |       |
+| 5   | MATCH                         | ✅    |
+| 6   | PROJECT                       | ✅    |
+| 7   | GTE                           | ✅    |
 | 8   | GROUP                         | ✅    |
 | 9   | SUM                           | ✅    |
 | 10  | COUNT (COUNTDOCUMENTS)        |       |
 | 11  | MAX                           |       |
-| 12  | AVG                           |       |
+| 12  | AVG                           | ✅    |
 | 13  | EXISTS                        |       |
 | 14  | SORT                          | ✅    |
 | 15  | LIMIT                         |       |
@@ -147,6 +158,6 @@ mongosh MongoDB_AV6/consultas.js
 | 26  | SAVE (UPDATEONE/INSERTONE)    |       |
 | 27  | RENAMECOLLECTION              |       |
 | 28  | COND                          |       |
-| 29  | LOOKUP                        |       |
+| 29  | LOOKUP                        | ✅    |
 | 30  | FINDONE                       |       |
 | 31  | ADDTOSET                      |       |

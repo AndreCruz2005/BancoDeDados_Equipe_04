@@ -100,8 +100,8 @@ def gerar_insertmany_js(nome_collection, documentos):
         else:
             return str(obj)
 
-    conteudo_js = f"db.{nome_collection}.insertMany({dict_to_js(documentos)});\n"
-    return conteudo_js.replace(" None", " null")
+    conteudo_js = f"db.{nome_collection}.insertMany({dict_to_js(documentos)});\n".replace(" None", " null")
+    return conteudo_js
 
 def gerar_peso_altura():
     bmi = random.uniform(20, 28)
@@ -379,7 +379,6 @@ db.createCollection("Jogadores");
 db.createCollection("Treinadores");
 db.createCollection("Funcionarios");
 db.createCollection("Socios");
-
 db.createCollection("ClubesAdversarios");
 db.createCollection("Campeonatos");
 db.createCollection("Patrocinios");
