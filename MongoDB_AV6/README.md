@@ -19,6 +19,102 @@ mongosh MongoDB_AV6/povoamento.js
 mongosh MongoDB_AV6/consultas.js
 ```
 
+## Descrição do banco de dados
+
+#### 1. Pessoa
+
+-   N° Documento (ID)
+-   Nome
+-   Nacionalidade
+-   Data Nascimento
+-   Emails
+-   Telefones
+-   Sexo
+
+#### 2. Jogador
+-   ID da Pessoa
+-   Contratos
+-   Lesões
+-   Punições 
+-   Altura
+-   Peso
+
+#### 2.1. Lesões
+- ID da Partida em que ocorreu
+- Data de lesão
+- Gravidade da lesão
+- Data de retorno do jogador
+
+#### 2.2. Punições
+- ID da Partida em que ocorreu
+- Tipo de punição
+- Data da punição
+- Quantidade de jogos que o jogador ficará suspenso
+
+#### 3. Treinador
+- ID da Pessoa
+- Contratos
+
+#### 2.3 / 3.1. Contratos
+- Clube (Somente especificado se for outro clube e não o nosso)
+- Tipo (Jogador/Treinador)
+- Data de Início
+- Data de Término
+- Pagamento mensal
+- Status (Ativo/Encerrado)
+
+#### 4. Funcionário
+- ID da Pessoa
+- ID de Gerente
+- Função
+- Salário
+- Data de contratação
+- Data de término de contrato
+- Razão por fim de contrato
+
+#### 5. Sócio
+- ID da Pessoa
+- Data em que começou a ser sócio
+- Pagamento mensal
+
+#### 6. Clubes adversários
+- ID
+- Nome
+- Sigla
+- País
+
+#### 7. Patrocínios
+- CNPJ (ID)
+- Nome
+- Email
+- Data de início
+- Recebimento mensal
+- Data de término
+
+#### 8. Campeonatos
+- ID
+- Nome
+- País
+- Data de início
+- Data de fim
+- Resultado
+- Prêmio monetário
+- Partidas
+
+#### 8.1 Partida
+- ID
+- Clube adversário
+- Treinador
+- Jogadroes titulares
+- Jogadores reserva
+- Data
+- Duração em minutos
+- Gols da nossa equipe
+- Gols do adversário
+- Resultado
+- Quantidade de espectadores
+- Receita gerada
+
 ## Checklist AV6
 
 | #   | Comando                       | Usado |

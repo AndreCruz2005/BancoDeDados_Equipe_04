@@ -24,4 +24,4 @@ const saldoGols = db.Campeonatos.aggregate([
     },
     { $sort: { saldoGols: -1 } },
 ]);
-console.log("Saldo de gols de todos os campeonatos:", saldoGols.toArray());
+console.log("Saldo de gols de todos os campeonatos:\n", saldoGols.toArray());

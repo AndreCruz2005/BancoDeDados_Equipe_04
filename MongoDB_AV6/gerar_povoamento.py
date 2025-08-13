@@ -1,14 +1,13 @@
 import random
-import math
 import itertools
 from datetime import datetime, timedelta
 now = datetime.now()
 
-def format_date(date):
-    date_str = date.strftime("%Y-%m-%dT%H:%M:%SZ")  # ISO UTC format
+def format_date(date: datetime) -> str:
+    date_str = date.strftime("%Y-%m-%dT%H:%M:%SZ")  
     return f"new Date('{date_str}')"
 
-def unencode_date(date_js_code):
+def unencode_date(date_js_code) -> datetime:
     date_code :str = date_js_code.code
     date_code = date_code.lstrip("new Date('").rstrip("')")
     date = datetime.strptime(date_code, "%Y-%m-%dT%H:%M:%SZ")
@@ -76,7 +75,10 @@ def gerar_email(nome, dominio=False):
     return parte1 + '@' + parte2
 
 def gerar_data(data_base, tempo_minimo, tempo_maximo):
-    return data_base - timedelta(days=random.uniform(tempo_minimo, tempo_maximo))
+    dias_aleatorios = random.uniform(tempo_minimo, tempo_maximo)
+    nova_data = data_base - timedelta(days=dias_aleatorios)
+    
+    return nova_data
 
 class JSCode:
     def __init__(self, code):
@@ -274,30 +276,30 @@ for i in range(20):
     clubes_adversarios.append({'_id':clube_id, 'nome':nome, 'sigla':sigla.upper(), 'pais':nacionalidade})
 
 # Gerar contratos
-def estrutura_contrato(pessoa, funcao, tipo, salario_mod, idade_min, clube=None):
+def estrutura_contrato(pessoa, tipo, salario_mod, idade_min, clube=None):
     inicio = gerar_data(unencode_date(pessoa['data_nascimento']), -idade_min*365.25, -(now.year - unencode_date(pessoa['data_nascimento']).year) * 365.25)
     pagamento_mensal = abs(random.uniform(1, 4) * (1052368 * (now.year - inicio.year) + 5000) * salario_mod)
     fim = gerar_data(inicio, -365.25, -10*365.25)
     status = "Ativo" if now.year - fim.year <= 0 else "Encerrado"
-    return {partida_id: funcao['_id'], "clube":clube, "tipo":tipo, "data_inicio":JSCode(format_date(inicio)), "pagamento_mensal":round(pagamento_mensal, 2), "status":status, "data_fim":JSCode(format_date(fim))}
+    return {"clube":clube, "tipo":tipo, "data_inicio":JSCode(format_date(inicio)), "pagamento_mensal":round(pagamento_mensal, 2), "status":status, "data_fim":JSCode(format_date(fim))}
 
 
 for i in range(len(jogadores)):
     pessoa = [p for p in pessoas if p['_id'] == jogadores[i]['_id']][0]
-    nosso_contrato = estrutura_contrato(pessoa, jogadores[i], 'Jogador', 1, 16)
+    nosso_contrato = estrutura_contrato(pessoa, 'Jogador', 1, 16)
     jogadores[i]['contratos'].append(nosso_contrato)
     
     # Gerar contratos de outros times que nossos jogadores tiveram    
     for j in range(random.randint(0, 2)): 
-        jogadores[i]['contratos'].append(estrutura_contrato(pessoa, jogadores[i], 'Jogador', 0.9,  16, random.sample(clubes_adversarios, k=1)[0]['_id']))
+        jogadores[i]['contratos'].append(estrutura_contrato(pessoa, 'Jogador', 0.9,  16, random.sample(clubes_adversarios, k=1)[0]['_id']))
 
 for i in range(len(treinadores)):
     pessoa = [p for p in pessoas if p['_id'] == jogadores[i]['_id']][0]
-    nosso_contrato = estrutura_contrato(pessoa, treinadores[i], 'Treinador', 0.2, 18)
+    nosso_contrato = estrutura_contrato(pessoa, 'Treinador', 0.2, 18)
     treinadores[i]['contratos'].append(nosso_contrato)
     
     for j in range(random.randint(0, 2)): 
-        treinadores[i]['contratos'].append(estrutura_contrato(pessoa, jogadores[i], 'Treinador', 0.16,  16, random.sample(clubes_adversarios, k=1)[0]['_id']))
+        treinadores[i]['contratos'].append(estrutura_contrato(pessoa, 'Treinador', 0.16,  16, random.sample(clubes_adversarios, k=1)[0]['_id']))
     
 # Gerar campeonatos
 campeonatos = []
@@ -310,10 +312,13 @@ for nome in itertools.product(["Copa", "Taça", "Mundial", "Campeonato"], ["do B
     data_fim = JSCode(format_date(gerar_data(unencode_date(data_inicio), -duracao, -duracao)))
     resultado = random.choice(("Campeão", "Finalista", "Eliminado"))
     premio = round(random.uniform(1, 50) * (10**6 if resultado == "Campeão" else 10**5 if resultado == "Finalista" else 0), 2)
+
+    # Gerar partidas
     partidas = []
     for time in random.sample(clubes_adversarios, k=7):
         partida_id = "".join([str(ord(c)) for c in nome+time['nome']])
         id_adversario = time['_id']
+        treinador = random.sample(treinadores, k=1)[0]['_id']
         jogaram = [j['_id'] for j in random.sample(jogadores, k=len(jogadores)) if 
                     unencode_date(data_inicio).year - unencode_date([p for p in pessoas if p['_id'] == j['_id']][0]['data_nascimento']).year 
                     >= 16][:11]
@@ -322,12 +327,11 @@ for nome in itertools.product(["Copa", "Taça", "Mundial", "Campeonato"], ["do B
                     >= 16 and j['_id'] not in jogaram][:5]
         data = JSCode(format_date(gerar_data(unencode_date(data_inicio), -1, -duracao)))
         duracao = random.randint(90, 120)
-        gols_equipe = random.randint(0, 10)
-        gols_adversario = random.randint(0, 10)
+        gols_equipe, gols_adversario = random.choices(tuple(range(0, 11)), tuple(range(11, 0, -1)), k=2)
         resultado_partida = 'Vitória' if gols_equipe > gols_adversario else 'Empate' if gols_equipe == gols_adversario else 'Derrota'
         espectadores = random.randint(1000, 50000)
         receita = round(espectadores*random.uniform(20, 200), 2)
-        partidas.append({'_id':partida_id, 'adversario': id_adversario, 'jogadores':jogaram, 'reserva':reserva, 'data':data, 'duracao':duracao, 'gols_equipe':gols_equipe, 'gols_adversario':gols_adversario, 'resultado':resultado_partida, 'espectadores':espectadores, 'receita':receita})
+        partidas.append({'_id':partida_id, 'adversario': id_adversario, 'treinador':treinador, 'jogadores':jogaram, 'reserva':reserva, 'data':data, 'duracao':duracao, 'gols_equipe':gols_equipe, 'gols_adversario':gols_adversario, 'resultado':resultado_partida, 'espectadores':espectadores, 'receita':receita})
         
         # Gerar lesões
         for i in range(random.randint(0, 2)):
@@ -375,6 +379,7 @@ db.createCollection("Jogadores");
 db.createCollection("Treinadores");
 db.createCollection("Funcionarios");
 db.createCollection("Socios");
+
 db.createCollection("ClubesAdversarios");
 db.createCollection("Campeonatos");
 db.createCollection("Patrocinios");
