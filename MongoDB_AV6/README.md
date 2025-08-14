@@ -149,15 +149,15 @@ mongosh MongoDB_AV6/consultas.js
 | 17  | MAPREDUCE                     | ✅    |
 | 18  | FUNCTION                      | ✅    |
 | 19  | PRETTY                        | ✅    |
-| 20  | ALL                           |       |
+| 20  | ALL                           | ✅    |
 | 21  | SET                           |       |
 | 22  | TEXT                          |       |
 | 23  | SEARCH                        |       |
-| 24  | FILTER                        |       |
+| 24  | FILTER                        | ✅    |
 | 25  | UPDATE (UPDATEONE/UPDATEMANY) |       |
 | 26  | SAVE (UPDATEONE/INSERTONE)    |       |
 | 27  | RENAMECOLLECTION              |       |
-| 28  | COND                          |       |
+| 28  | COND                          | ✅    |
 | 29  | LOOKUP                        | ✅    |
 | 30  | FINDONE                       |       |
 | 31  | ADDTOSET                      |       |

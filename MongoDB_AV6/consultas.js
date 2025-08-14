@@ -3,7 +3,7 @@ use("gerenciamento_times_esportivos");
 
 // Comandos usados: 'AGGREGATE', 'GROUP', 'SUM, 'SORT'
 // Calcula o saldo de gols de todos os campeonatos e os ordena de forma decrescente
-const saldoGols = db.Campeonatos.aggregate([
+db.Campeonatos.aggregate([
     {
         $unwind: "$partidas",
     },
@@ -24,12 +24,11 @@ const saldoGols = db.Campeonatos.aggregate([
     },
     { $sort: { saldoGols: -1 } },
 ]);
-console.log("Saldo de gols de todos os campeonatos:\n", saldoGols.toArray());
 
 // Comandos usados: 'SIZE', 'MATCH', 'PROJECT', 'GTE', 'LOOKUP'
 // Seleciona todos os jogadores com no minímo 3 lesões e exibe o nome do jogador,
 // tempo total afastado por lesões e também o tempo médio por cada lesão
-const jogadoresComMuitasLesoes = db.Jogadores.aggregate([
+db.Jogadores.aggregate([
     {
         $match: {
             $expr: { $gte: [{ $size: "$lesoes" }, 3] },
@@ -84,7 +83,6 @@ const jogadoresComMuitasLesoes = db.Jogadores.aggregate([
         $sort: { tempo_total_afastado_dias: -1 },
     },
 ]);
-console.log(jogadoresComMuitasLesoes);
 
 // Comandos usados: "PRETTY", "FIND"
 // Listar todos os sócios de forma legível
@@ -92,7 +90,7 @@ db.Socios.find({}).pretty();
 
 // Comandos usados: "COUNTDOCUMENTS"
 // Mostra o total de jogadores que têm o contrato ativo
-const totalJogadoresAtivos = db.Jogadores.countDocuments({
+db.Jogadores.countDocuments({
     contratos: {
         $elemMatch: {
             status: "Ativo",
@@ -100,7 +98,6 @@ const totalJogadoresAtivos = db.Jogadores.countDocuments({
         },
     },
 });
-console.log(`No total, temos ${totalJogadoresAtivos} de jogadores ativos no momento`);
 
 // Comandos usados: "MAX"
 // Seleciona o salário mais alto entre os treinadores que estão com o contrato ativo
@@ -184,3 +181,57 @@ var reduceEspectadores = function (key, values) {
 
 db.Campeonatos.mapReduce(mapEspectadores, reduceEspectadores, { out: "espectadores_por_campeonato" });
 db.espectadores_por_campeonato.find();
+
+// Comandos usados: 'FILTER', 'COND'
+// Lista os jogadores com todas os cartões vermelhos que receberam
+db.Jogadores.aggregate([
+    {
+        $lookup: {
+            from: "Pessoas",
+            localField: "_id",
+            foreignField: "_id",
+            as: "dados_pessoa",
+        },
+    },
+    {
+        $project: {
+            nome: { $arrayElemAt: ["$dados_pessoa.nome", 0] },
+            _id: 0,
+            faltas_graves: {
+                $filter: {
+                    input: "$punicoes",
+                    as: "punicao",
+                    cond: { $eq: ["$$punicao.tipo", "Cartão Vermelho"] },
+                },
+            },
+        },
+    },
+    {
+        $addFields: {
+            total_faltas_graves: { $size: "$faltas_graves" },
+        },
+    },
+    { $sort: { total_faltas_graves: -1 } },
+]);
+
+// Comandos usados: 'ALL'
+// Lista as partidas de campeonatos onde dois jogadores aleatórios participaram
+var jogadores_ids = db.Jogadores.aggregate([{ $sample: { size: 2 } }, { $project: { _id: 1 } }])
+    .toArray()
+    .map((j) => j._id);
+db.Campeonatos.aggregate([
+    { $unwind: "$partidas" },
+    { $match: { "partidas.jogadores": { $all: jogadores_ids } } },
+    {
+        $project: {
+            _id: 0,
+            campeonato: "$nome",
+            partida_id: "$partidas._id",
+            data: "$partidas.data",
+            clube_adversario: "$partidas.adversario",
+            gols_nosso_time: "$partidas.gols_equipe",
+            gols_adversario: "$partidas.gols_adversario",
+            jogadores: "$partidas.jogadores",
+        },
+    },
+]);
