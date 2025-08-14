@@ -133,8 +133,8 @@ db.Treinadores.aggregate([
     },
 ]);
 
-// Lista os funcionários que foram demitidos
 // Comandos usados: "EXISTS"
+// Lista os funcionários que já não são mais empregados (tem data de fim de contrato)
 db.Funcionarios.find({ fim_contrato: { $exists: true, $ne: null } });
 
 // Comandos usados: "LIMIT"
@@ -256,61 +256,55 @@ db.Campeonatos.aggregate([
 
 // Comandos usados: 'SET', 'UPDATE' (UPDATEONE)
 // Atualiza salário de funcionários baseado na função e tempo de serviço
-// Funcionários de segurança com mais de 10 anos recebem aumento de 15%
+// Funcionários de segurança com mais de 5 anos recebem aumento de 15%
 db.Funcionarios.aggregate([
     {
         $match: {
             funcao: "Segurança",
-            contrado_em: { $lt: new Date(new Date().getFullYear() - 10, 0, 1) }
-        }
+            contrado_em: { $lt: new Date(new Date().getFullYear() - 5, 0, 1) },
+        },
     },
     {
         $addFields: {
-            novo_salario: { $multiply: ["$salario", 1.15] }
-        }
-    }
-]).forEach(function(funcionario) {
-    db.Funcionarios.updateOne(
-        { _id: funcionario._id },
-        { $set: { salario: funcionario.novo_salario } }
-    );
+            novo_salario: { $multiply: ["$salario", 1.15] },
+        },
+    },
+]).forEach(function (funcionario) {
+    db.Funcionarios.updateOne({ _id: funcionario._id }, { $set: { salario: funcionario.novo_salario } });
 });
 
 // Comandos usados: 'TEXT', 'SEARCH'
 // Busca por pessoas usando índice de texto composto
-db.Pessoas.createIndex({ 
-    nome: "text", 
-    nacionalidade: "text" 
-}, { 
-    weights: { nome: 10, nacionalidade: 5 },
-    name: "busca_pessoa_completa"
-});
+db.Pessoas.createIndex(
+    {
+        nome: "text",
+        nacionalidade: "text",
+    },
+    {
+        weights: { nome: 10, nacionalidade: 5 },
+        name: "busca_pessoa_completa",
+    }
+);
 
 // Busca pessoas brasileiras cujo nome contenha palavras específicas
 db.Pessoas.aggregate([
     {
         $match: {
-            $and: [
-                { $text: { $search: "Silva Santos Oliveira" } },
-                { nacionalidade: "Brasil" }
-            ]
-        }
+            $and: [{ $text: { $search: "Silva Santos Oliveira" } }, { nacionalidade: "Brasil" }],
+        },
     },
     {
         $addFields: {
             score: { $meta: "textScore" },
             idade: {
                 $floor: {
-                    $divide: [
-                        { $subtract: [new Date(), "$data_nascimento"] },
-                        1000 * 60 * 60 * 24 * 365.25
-                    ]
-                }
-            }
-        }
+                    $divide: [{ $subtract: [new Date(), "$data_nascimento"] }, 1000 * 60 * 60 * 24 * 365.25],
+                },
+            },
+        },
     },
     {
-        $sort: { score: { $meta: "textScore" }, idade: -1 }
+        $sort: { score: { $meta: "textScore" }, idade: -1 },
     },
     {
         $project: {
@@ -318,21 +312,21 @@ db.Pessoas.aggregate([
             nacionalidade: 1,
             idade: 1,
             score: 1,
-            _id: 0
-        }
-    }
+            _id: 0,
+        },
+    },
 ]);
 
 // Comandos usados: 'UPDATEMANY'
 // Gestão de contratos baseada em performance dos jogadores
-// Encerra o contrato de jogadores com baixa performance
-// Renova o contrato de jogadores com alta performance
+// Encerra o contrato de jogadores com baixa performance imediatamente
+// Extende o contrato de jogadores com alta performance por mais 2 anos
 db.Jogadores.aggregate([
     {
         $match: {
-            "contratos.data_fim": { $lt: new Date() },
-            "contratos.status": "Ativo"
-        }
+            "contratos.clube": null,
+            "contratos.status": "Ativo",
+        },
     },
     {
         $addFields: {
@@ -342,45 +336,42 @@ db.Jogadores.aggregate([
                 $subtract: [
                     100,
                     {
-                        $add: [
-                            { $multiply: [{ $size: "$lesoes" }, 5] },
-                            { $multiply: [{ $size: "$punicoes" }, 10] }
-                        ]
-                    }
-                ]
-            }
-        }
-    }
-]).forEach(function(jogador) {
-    if (jogador.performance_score < 70) {
-        // Encerra contrato de jogadores com baixa performance
-        db.Jogadores.updateMany(
-            { 
-                _id: jogador._id,
-                "contratos.data_fim": { $lt: new Date() },
-                "contratos.status": "Ativo"
+                        $add: [{ $multiply: [{ $size: "$lesoes" }, 5] }, { $multiply: [{ $size: "$punicoes" }, 10] }],
+                    },
+                ],
             },
-            { 
-                $set: { 
-                    "contratos.$.status": "Encerrado"
-                }
+        },
+    },
+]).forEach(function (jogador) {
+    if (jogador.performance_score < 70) {
+        // Encerra contrato imediatamente para jogadores com performance abaixo de 70
+        db.Jogadores.updateMany(
+            {
+                _id: jogador._id,
+                "contratos.clube": null,
+                "contratos.status": "Ativo",
+            },
+            {
+                $set: {
+                    "contratos.$.status": "Encerrado",
+                    "contratos.$.data_fim": new Date(),
+                },
             }
         );
     } else if (jogador.performance_score >= 70) {
-        // Renova contrato de jogadores com alta performance (2 anos adicionais)
-        var novaDataFim = new Date();
-        novaDataFim.setFullYear(novaDataFim.getFullYear() + 2);
-        
+        // Extende contrato por 2 anos para jogadores com performance 70 ou maior
         db.Jogadores.updateMany(
-            { 
+            {
                 _id: jogador._id,
-                "contratos.data_fim": { $lt: new Date() },
-                "contratos.status": "Ativo"
+                "contratos.clube": null,
+                "contratos.status": "Ativo",
             },
-            { 
-                $set: { 
-                    "contratos.$.data_fim": novaDataFim
-                }
+            {
+                $set: {
+                    "contratos.$.data_fim": new Date(
+                        jogador.contratos[0].data_fim.setFullYear(jogador.contratos[0].data_fim.getFullYear() + 2)
+                    ),
+                },
             }
         );
     }
