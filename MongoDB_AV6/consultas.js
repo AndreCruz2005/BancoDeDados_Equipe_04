@@ -253,3 +253,135 @@ db.Campeonatos.aggregate([
             }),
         };
     });
+
+// Comandos usados: 'SET', 'UPDATE' (UPDATEONE)
+// Atualiza salário de funcionários baseado na função e tempo de serviço
+// Funcionários de segurança com mais de 10 anos recebem aumento de 15%
+db.Funcionarios.aggregate([
+    {
+        $match: {
+            funcao: "Segurança",
+            contrado_em: { $lt: new Date(new Date().getFullYear() - 10, 0, 1) }
+        }
+    },
+    {
+        $addFields: {
+            novo_salario: { $multiply: ["$salario", 1.15] }
+        }
+    }
+]).forEach(function(funcionario) {
+    db.Funcionarios.updateOne(
+        { _id: funcionario._id },
+        { $set: { salario: funcionario.novo_salario } }
+    );
+});
+
+// Comandos usados: 'TEXT', 'SEARCH'
+// Busca por pessoas usando índice de texto composto
+db.Pessoas.createIndex({ 
+    nome: "text", 
+    nacionalidade: "text" 
+}, { 
+    weights: { nome: 10, nacionalidade: 5 },
+    name: "busca_pessoa_completa"
+});
+
+// Busca pessoas brasileiras cujo nome contenha palavras específicas
+db.Pessoas.aggregate([
+    {
+        $match: {
+            $and: [
+                { $text: { $search: "Silva Santos Oliveira" } },
+                { nacionalidade: "Brasil" }
+            ]
+        }
+    },
+    {
+        $addFields: {
+            score: { $meta: "textScore" },
+            idade: {
+                $floor: {
+                    $divide: [
+                        { $subtract: [new Date(), "$data_nascimento"] },
+                        1000 * 60 * 60 * 24 * 365.25
+                    ]
+                }
+            }
+        }
+    },
+    {
+        $sort: { score: { $meta: "textScore" }, idade: -1 }
+    },
+    {
+        $project: {
+            nome: 1,
+            nacionalidade: 1,
+            idade: 1,
+            score: 1,
+            _id: 0
+        }
+    }
+]);
+
+// Comandos usados: 'UPDATEMANY'
+// Gestão de contratos baseada em performance dos jogadores
+// Encerra o contrato de jogadores com baixa performance
+// Renova o contrato de jogadores com alta performance
+db.Jogadores.aggregate([
+    {
+        $match: {
+            "contratos.data_fim": { $lt: new Date() },
+            "contratos.status": "Ativo"
+        }
+    },
+    {
+        $addFields: {
+            total_lesoes: { $size: "$lesoes" },
+            total_punicoes: { $size: "$punicoes" },
+            performance_score: {
+                $subtract: [
+                    100,
+                    {
+                        $add: [
+                            { $multiply: [{ $size: "$lesoes" }, 5] },
+                            { $multiply: [{ $size: "$punicoes" }, 10] }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+]).forEach(function(jogador) {
+    if (jogador.performance_score < 70) {
+        // Encerra contrato de jogadores com baixa performance
+        db.Jogadores.updateMany(
+            { 
+                _id: jogador._id,
+                "contratos.data_fim": { $lt: new Date() },
+                "contratos.status": "Ativo"
+            },
+            { 
+                $set: { 
+                    "contratos.$.status": "Encerrado"
+                }
+            }
+        );
+    } else if (jogador.performance_score >= 70) {
+        // Renova contrato de jogadores com alta performance (2 anos adicionais)
+        var novaDataFim = new Date();
+        novaDataFim.setFullYear(novaDataFim.getFullYear() + 2);
+        
+        db.Jogadores.updateMany(
+            { 
+                _id: jogador._id,
+                "contratos.data_fim": { $lt: new Date() },
+                "contratos.status": "Ativo"
+            },
+            { 
+                $set: { 
+                    "contratos.$.data_fim": novaDataFim
+                }
+            }
+        );
+    }
+});

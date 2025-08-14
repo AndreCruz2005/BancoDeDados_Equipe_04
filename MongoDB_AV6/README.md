@@ -150,11 +150,11 @@ mongosh MongoDB_AV6/consultas.js
 | 18  | FUNCTION                      | ✅    |
 | 19  | PRETTY                        | ✅    |
 | 20  | ALL                           | ✅    |
-| 21  | SET                           |       |
-| 22  | TEXT                          |       |
-| 23  | SEARCH                        |       |
+| 21  | SET                           | ✅    |
+| 22  | TEXT                          | ✅    |
+| 23  | SEARCH                        | ✅    |
 | 24  | FILTER                        | ✅    |
-| 25  | UPDATE (UPDATEONE/UPDATEMANY) |       |
+| 25  | UPDATE (UPDATEONE/UPDATEMANY) | ✅    |
 | 26  | SAVE (UPDATEONE/INSERTONE)    |       |
 | 27  | RENAMECOLLECTION              |       |
 | 28  | COND                          | ✅    |
