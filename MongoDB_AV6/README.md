@@ -30,6 +30,7 @@ mongosh MongoDB_AV6/consultas.js
 -   Emails
 -   Telefones
 -   Sexo
+-   Tipo (Jogador/Treinador/Funcionário/Sócio)
 
 #### 2. Jogador
 
@@ -155,9 +156,9 @@ mongosh MongoDB_AV6/consultas.js
 | 23  | SEARCH                        | ✅    |
 | 24  | FILTER                        | ✅    |
 | 25  | UPDATE (UPDATEONE/UPDATEMANY) | ✅    |
-| 26  | SAVE (UPDATEONE/INSERTONE)    |       |
-| 27  | RENAMECOLLECTION              |       |
+| 26  | SAVE (UPDATEONE/INSERTONE)    | ✅    |
+| 27  | RENAMECOLLECTION              | ✅    |
 | 28  | COND                          | ✅    |
 | 29  | LOOKUP                        | ✅    |
 | 30  | FINDONE                       | ✅    |
-| 31  | ADDTOSET                      |       |
+| 31  | ADDTOSET                      | ✅    |

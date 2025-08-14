@@ -165,23 +165,6 @@ db.Pessoas.find({
     $where: "this.emails.length > this.telefones.length",
 });
 
-// Comandos usados: 'MAPREDUCE', 'FUNCTION'
-// Calcula o total de espectadores em partidas que nosso clube jogou em cada campeonato
-var mapEspectadores = function () {
-    if (this.partidas) {
-        this.partidas.forEach(function (partida) {
-            emit(this["nome"], partida["espectadores"]);
-        }, this);
-    }
-};
-
-var reduceEspectadores = function (key, values) {
-    return Array.sum(values);
-};
-
-db.Campeonatos.mapReduce(mapEspectadores, reduceEspectadores, { out: "espectadores_por_campeonato" });
-db.espectadores_por_campeonato.find();
-
 // Comandos usados: 'FILTER', 'COND'
 // Lista os jogadores com todas os cartões vermelhos que receberam
 db.Jogadores.aggregate([
@@ -253,6 +236,28 @@ db.Campeonatos.aggregate([
             }),
         };
     });
+
+// Comandos usados: 'MAPREDUCE', 'FUNCTION'
+// Calcula o total de espectadores em partidas que nosso clube jogou em cada campeonato
+var mapEspectadores = function () {
+    if (this.partidas) {
+        this.partidas.forEach(function (partida) {
+            emit(this["_id"], partida["espectadores"]);
+        }, this);
+    }
+};
+
+var reduceEspectadores = function (key, values) {
+    return Array.sum(values);
+};
+
+db.Campeonatos.mapReduce(mapEspectadores, reduceEspectadores, { out: "espectadores_por_campeonato" });
+db.espectadores_por_campeonato.find().map(function (mapreduce) {
+    return {
+        campeonato: db.Campeonatos.findOne({ _id: mapreduce._id }).nome,
+        total_espectadores: mapreduce.value,
+    };
+});
 
 // Comandos usados: 'SET', 'UPDATE' (UPDATEONE)
 // Atualiza salário de funcionários baseado na função e tempo de serviço
@@ -375,4 +380,30 @@ db.Jogadores.aggregate([
             }
         );
     }
+});
+
+// Comandos usados: 'RENAMECOLLECTION'
+// Renomeia a coleção de "Patrocinios" para "Patrocinadores"
+// E lista os patrocinadores com pagamento mensal superior a 6 milhões
+db.Patrocinios.renameCollection("Patrocinadores");
+db.Patrocinadores.find({ $where: "this.pagamento_mensal > 6000000" });
+
+// Comandos usados: 'ADDTOSET'
+// Dá para cada funcionário um email do clube baseado no nome
+var gerar_email = function (nome) {
+    return nome.toLowerCase().replace(/\s+/g, ".") + "@futebolclube.com.br";
+};
+db.Pessoas.find({ $where: "this.tipo == 'Funcionário' && this.fim_contrato == null" }).forEach(function (pessoa) {
+    var email = gerar_email(pessoa.nome);
+
+    db.Pessoas.updateOne({ _id: pessoa._id }, { $addToSet: { emails: email } });
+});
+
+// Comandos usados: 'SAVE' (INSERTONE)
+// Adiciona um rival digno ao nosso clube
+db.ClubesAdversarios.insertOne({
+    _id: "-1",
+    nome: "조선민주주의인민공화국 축구협회",
+    sigla: "KDPR",
+    pais: "Coréia do Norte",
 });

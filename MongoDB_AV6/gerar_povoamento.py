@@ -123,7 +123,7 @@ for i in range(300):
     emails = [gerar_email(nome) for _ in range(random.randint(0, 3))]
     data_nascimento = gerar_data(now, 16*365.25, 35*365.25) if tipo == 'Jogador' else gerar_data(now, 18*365.25, 70*365.25)
     
-    pessoas.append({'_id':partida_id, 'nome':nome, 'nacionalidade':nacionalidade, 'sexo':sexo, 'emails':emails, 'telefones':telefones, 'data_nascimento':JSCode(format_date(data_nascimento))})
+    pessoas.append({'_id':partida_id, 'nome':nome, 'nacionalidade':nacionalidade, 'sexo':sexo, 'emails':emails, 'telefones':telefones, 'data_nascimento':JSCode(format_date(data_nascimento)), 'tipo':tipo})
     
     if tipo == 'Jogador':
         altura, peso = gerar_peso_altura()
@@ -137,7 +137,11 @@ for i in range(300):
         demitido = random.random() < 0.2
         contrato_fim = None if not demitido else gerar_data(contratacao, -30, -(now.year-contratacao.year)*365.25) 
         razao_fim = None if not demitido else random.choice(("Demissão", "Aposentadoria", "Morte"))
-        funcionarios.append({'_id':partida_id, 'gerente':None, 'funcao':funcao, 'salario':salario, 'contrado_em':JSCode(format_date(contratacao)), 'fim_contrato':JSCode(format_date(contrato_fim)) if contrato_fim else None, 'razao_fim':razao_fim})            
+        if demitido:
+            funcionarios.append({'_id':partida_id, 'gerente':None, 'funcao':funcao, 'salario':salario, 'contrado_em':JSCode(format_date(contratacao)), 'fim_contrato':JSCode(format_date(contrato_fim)) if contrato_fim else None, 'razao_fim':razao_fim})            
+        else:
+            funcionarios.append({'_id':partida_id, 'gerente':None, 'funcao':funcao, 'salario':salario, 'contrado_em':JSCode(format_date(contratacao))})            
+ 
     elif tipo == 'Sócio':
         socio_desde = gerar_data(data_nascimento, -18*365.25, -(now.year-data_nascimento.year)*365.25)
         socios.append({'_id':partida_id, 'socio_desde':JSCode(format_date(socio_desde)), 'pagamento_mensal': random.choice((19.99, 59.99, 199.99))})
