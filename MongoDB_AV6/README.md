@@ -131,7 +131,7 @@ mongosh MongoDB_AV6/consultas.js
 | #   | Comando                       | Usado |
 | --- | ----------------------------- | ----- |
 | 1   | USE                           | ✅    |
-| 2   | FIND                          |       |
+| 2   | FIND                          | ✅    |
 | 3   | SIZE                          | ✅    |
 | 4   | AGGREGATE                     | ✅    |
 | 5   | MATCH                         | ✅    |
@@ -139,16 +139,16 @@ mongosh MongoDB_AV6/consultas.js
 | 7   | GTE                           | ✅    |
 | 8   | GROUP                         | ✅    |
 | 9   | SUM                           | ✅    |
-| 10  | COUNT (COUNTDOCUMENTS)        |       |
-| 11  | MAX                           |       |
+| 10  | COUNT (COUNTDOCUMENTS)        | ✅    |
+| 11  | MAX                           | ✅    |
 | 12  | AVG                           | ✅    |
-| 13  | EXISTS                        |       |
+| 13  | EXISTS                        | ✅    |
 | 14  | SORT                          | ✅    |
-| 15  | LIMIT                         |       |
-| 16  | $WHERE                        |       |
+| 15  | LIMIT                         | ✅    |
+| 16  | $WHERE                        | ✅    |
 | 17  | MAPREDUCE                     |       |
-| 18  | FUNCTION                      |       |
-| 19  | PRETTY                        |       |
+| 18  | FUNCTION                      |        |
+| 19  | PRETTY                        | ✅    |
 | 20  | ALL                           |       |
 | 21  | SET                           |       |
 | 22  | TEXT                          |       |
