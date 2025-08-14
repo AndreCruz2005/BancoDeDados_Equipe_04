@@ -85,3 +85,39 @@ const jogadoresComMuitasLesoes = db.Jogadores.aggregate([
   },
 ]);
 console.log(res);
+
+// Listar todos os sócios de forma legível
+// Comandos usados: "PRETTY", "FIND"
+db.Socios.find({}).pretty();
+
+// Mostra o total de jogadores que têm o contrato ativo
+// Comandos usados: "COUNTDOCUMENTS"
+const totalJogadoresAtivos = db.Contratos.countDocuments({
+    tipo: "Jogador",
+    status: "Ativo"
+});
+console.log(`No total, temos ${totalJogadoresAtivos} de jogadores ativos no momento`);
+
+// Encontra o treinador com o maior salário
+// Comandos usados: "AGREGGATE", "MAX"
+db.Contratos.aggregate([
+    { $match: {tipo: "Treinador"} },
+    { $group: {_id: null, maiorSalario: { $max: "$salario_mensal" } } }
+]);
+
+// Lista as pessoas que têm endereços registrados e não nulos
+// Comandos usados: "AGREGGATE", "EXISTS"
+db.Pessoas.find({ $endereco: { $exists: true, $ne: null } })
+
+// Lista os 5 primeiros jogares em ordem decrescente pela altura
+// Comandos usados: "SORT", "FIND", "LIMIT"
+db.Jogadores.find({}, { nome: 1, idade: 1, _id: 0 })
+    .sort({altura: -1})
+    .limit(5)
+
+// Lista pessoas que tem mais email registrados do que telefones
+// Comandos usados: 'FIND', '$WHERE'
+db.Pessoas.find({
+  $where: "this.emails.length > this.telefones.length"
+});
+
