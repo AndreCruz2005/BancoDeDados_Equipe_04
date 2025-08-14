@@ -4,25 +4,25 @@ use("gerenciamento_times_esportivos");
 // Comandos usados: 'AGGREGATE', 'GROUP', 'SUM, 'SORT'
 // Calcula o saldo de gols de todos os campeonatos e os ordena de forma decrescente
 const saldoGols = db.Campeonatos.aggregate([
-  {
-    $unwind: "$partidas",
-  },
-  {
-    $group: {
-      _id: "$_id",
-      nome: { $first: "$nome" },
-      totalGolsEquipe: { $sum: "$partidas.gols_equipe" },
-      totalGolsAdversario: { $sum: "$partidas.gols_adversario" },
+    {
+        $unwind: "$partidas",
     },
-  },
-  {
-    $addFields: {
-      saldoGols: {
-        $subtract: ["$totalGolsEquipe", "$totalGolsAdversario"],
-      },
+    {
+        $group: {
+            _id: "$_id",
+            nome: { $first: "$nome" },
+            totalGolsEquipe: { $sum: "$partidas.gols_equipe" },
+            totalGolsAdversario: { $sum: "$partidas.gols_adversario" },
+        },
     },
-  },
-  { $sort: { saldoGols: -1 } },
+    {
+        $addFields: {
+            saldoGols: {
+                $subtract: ["$totalGolsEquipe", "$totalGolsAdversario"],
+            },
+        },
+    },
+    { $sort: { saldoGols: -1 } },
 ]);
 console.log("Saldo de gols de todos os campeonatos:\n", saldoGols.toArray());
 
@@ -30,94 +30,157 @@ console.log("Saldo de gols de todos os campeonatos:\n", saldoGols.toArray());
 // Seleciona todos os jogadores com no minímo 3 lesões e exibe o nome do jogador,
 // tempo total afastado por lesões e também o tempo médio por cada lesão
 const jogadoresComMuitasLesoes = db.Jogadores.aggregate([
-  {
-    $match: {
-      $expr: { $gte: [{ $size: "$lesoes" }, 3] },
+    {
+        $match: {
+            $expr: { $gte: [{ $size: "$lesoes" }, 3] },
+        },
     },
-  },
-  {
-    $lookup: {
-      from: "Pessoas",
-      localField: "_id",
-      foreignField: "_id",
-      as: "dados_pessoa",
+    {
+        $lookup: {
+            from: "Pessoas",
+            localField: "_id",
+            foreignField: "_id",
+            as: "dados_pessoa",
+        },
     },
-  },
-  {
-    $unwind: "$lesoes",
-  },
+    {
+        $unwind: "$lesoes",
+    },
 
-  {
-    $addFields: {
-      dias_afastado: {
-        $divide: [
-          {
-            $subtract: ["$lesoes.data_retorno", "$lesoes.data_lesionamento"],
-          },
-          1000 * 60 * 60 * 24,
-        ],
-      },
+    {
+        $addFields: {
+            dias_afastado: {
+                $divide: [
+                    {
+                        $subtract: ["$lesoes.data_retorno", "$lesoes.data_lesionamento"],
+                    },
+                    1000 * 60 * 60 * 24,
+                ],
+            },
+        },
     },
-  },
 
-  {
-    $group: {
-      _id: "$_id",
-      nome: { $first: { $arrayElemAt: ["$dados_pessoa.nome", 0] } },
-      tempo_medio_afastado_dias: { $avg: "$dias_afastado" },
-      tempo_total_afastado_dias: { $sum: "$dias_afastado" },
-      total_lesoes: { $sum: 1 },
+    {
+        $group: {
+            _id: "$_id",
+            nome: { $first: { $arrayElemAt: ["$dados_pessoa.nome", 0] } },
+            tempo_medio_afastado_dias: { $avg: "$dias_afastado" },
+            tempo_total_afastado_dias: { $sum: "$dias_afastado" },
+            total_lesoes: { $sum: 1 },
+        },
     },
-  },
 
-  {
-    $project: {
-      _id: 0,
-      nome: 1,
-      tempo_medio_afastado_dias: { $round: ["$tempo_medio_afastado_dias", 1] },
-      tempo_total_afastado_dias: { $round: ["$tempo_total_afastado_dias", 1] },
-      total_lesoes: 1,
+    {
+        $project: {
+            _id: 0,
+            nome: 1,
+            tempo_medio_afastado_dias: { $round: ["$tempo_medio_afastado_dias", 1] },
+            tempo_total_afastado_dias: { $round: ["$tempo_total_afastado_dias", 1] },
+            total_lesoes: 1,
+        },
     },
-  },
 
-  {
-    $sort: { tempo_total_afastado_dias: -1 },
-  },
+    {
+        $sort: { tempo_total_afastado_dias: -1 },
+    },
 ]);
-console.log(res);
+console.log(jogadoresComMuitasLesoes);
 
-// Listar todos os sócios de forma legível
 // Comandos usados: "PRETTY", "FIND"
+// Listar todos os sócios de forma legível
 db.Socios.find({}).pretty();
 
-// Mostra o total de jogadores que têm o contrato ativo
 // Comandos usados: "COUNTDOCUMENTS"
-const totalJogadoresAtivos = db.Contratos.countDocuments({
-    tipo: "Jogador",
-    status: "Ativo"
+// Mostra o total de jogadores que têm o contrato ativo
+const totalJogadoresAtivos = db.Jogadores.countDocuments({
+    contratos: {
+        $elemMatch: {
+            status: "Ativo",
+            clube: null,
+        },
+    },
 });
 console.log(`No total, temos ${totalJogadoresAtivos} de jogadores ativos no momento`);
 
-// Encontra o treinador com o maior salário
-// Comandos usados: "AGREGGATE", "MAX"
-db.Contratos.aggregate([
-    { $match: {tipo: "Treinador"} },
-    { $group: {_id: null, maiorSalario: { $max: "$salario_mensal" } } }
+// Comandos usados: "MAX"
+// Seleciona o salário mais alto entre os treinadores que estão com o contrato ativo
+db.Treinadores.aggregate([
+    {
+        $match: {
+            contratos: {
+                $elemMatch: {
+                    status: "Ativo",
+                    clube: null,
+                },
+            },
+        },
+    },
+    { $unwind: "$contratos" },
+    {
+        $match: {
+            "contratos.status": "Ativo",
+            "contratos.clube": null,
+        },
+    },
+    {
+        $group: {
+            _id: null,
+            maiorPagamento: { $max: "$contratos.pagamento_mensal" },
+        },
+    },
+    {
+        $project: {
+            _id: 0,
+            maiorPagamento: 1,
+        },
+    },
 ]);
 
-// Lista as pessoas que têm endereços registrados e não nulos
-// Comandos usados: "AGREGGATE", "EXISTS"
-db.Pessoas.find({ $endereco: { $exists: true, $ne: null } })
+// Lista os funcionários que foram demitidos
+// Comandos usados: "EXISTS"
+db.Funcionarios.find({ fim_contrato: { $exists: true, $ne: null } });
 
-// Lista os 5 primeiros jogares em ordem decrescente pela altura
-// Comandos usados: "SORT", "FIND", "LIMIT"
-db.Jogadores.find({}, { nome: 1, idade: 1, _id: 0 })
-    .sort({altura: -1})
-    .limit(5)
+// Comandos usados: "LIMIT"
+// Lista os 5 primeiros jogadores em ordem decrescente pela altura
+db.Jogadores.aggregate([
+    {
+        $lookup: {
+            from: "Pessoas",
+            localField: "_id",
+            foreignField: "_id",
+            as: "dados_pessoa",
+        },
+    },
+    {
+        $project: {
+            nome: { $arrayElemAt: ["$dados_pessoa.nome", 0] },
+            altura: 1,
+            _id: 0,
+        },
+    },
+    { $sort: { altura: -1 } },
+    { $limit: 5 },
+]);
 
+// Comandos usados: '$WHERE'
 // Lista pessoas que tem mais email registrados do que telefones
-// Comandos usados: 'FIND', '$WHERE'
 db.Pessoas.find({
-  $where: "this.emails.length > this.telefones.length"
+    $where: "this.emails.length > this.telefones.length",
 });
 
+// Comandos usados: 'MAPREDUCE', 'FUNCTION'
+// Calcula o total de espectadores em partidas que nosso clube jogou em cada campeonato
+var mapEspectadores = function () {
+    if (this.partidas) {
+        this.partidas.forEach(function (partida) {
+            emit(this["nome"], partida["espectadores"]);
+        }, this);
+    }
+};
+
+var reduceEspectadores = function (key, values) {
+    return Array.sum(values);
+};
+
+db.Campeonatos.mapReduce(mapEspectadores, reduceEspectadores, { out: "espectadores_por_campeonato" });
+db.espectadores_por_campeonato.find();
