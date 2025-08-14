@@ -214,11 +214,13 @@ db.Jogadores.aggregate([
     { $sort: { total_faltas_graves: -1 } },
 ]);
 
-// Comandos usados: 'ALL'
+// Comandos usados: 'ALL', 'FINDONE'
 // Lista as partidas de campeonatos onde dois jogadores aleatórios participaram
+// Indica os nomes destes jogadores enfaticamente
 var jogadores_ids = db.Jogadores.aggregate([{ $sample: { size: 2 } }, { $project: { _id: 1 } }])
     .toArray()
     .map((j) => j._id);
+
 db.Campeonatos.aggregate([
     { $unwind: "$partidas" },
     { $match: { "partidas.jogadores": { $all: jogadores_ids } } },
@@ -228,10 +230,26 @@ db.Campeonatos.aggregate([
             campeonato: "$nome",
             partida_id: "$partidas._id",
             data: "$partidas.data",
-            clube_adversario: "$partidas.adversario",
+            adversario_id: "$partidas.adversario",
             gols_nosso_time: "$partidas.gols_equipe",
             gols_adversario: "$partidas.gols_adversario",
             jogadores: "$partidas.jogadores",
         },
     },
-]);
+])
+    .toArray()
+    .map(function (partida) {
+        return {
+            campeonato: partida.campeonato,
+            partida_id: partida.partida_id,
+            data: partida.data,
+            clube_adversario: db.ClubesAdversarios.findOne({ _id: partida.adversario_id }).nome,
+            gols_nosso_time: partida.gols_nosso_time,
+            gols_adversario: partida.gols_adversario,
+            jogadores: partida.jogadores.map((j) => {
+                var jogador = db.Pessoas.findOne({ _id: j });
+                if (jogadores_ids.includes(jogador._id)) return ">>> " + jogador.nome.toUpperCase() + " <<<";
+                return jogador.nome;
+            }),
+        };
+    });

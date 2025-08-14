@@ -159,5 +159,5 @@ mongosh MongoDB_AV6/consultas.js
 | 27  | RENAMECOLLECTION              |       |
 | 28  | COND                          | ✅    |
 | 29  | LOOKUP                        | ✅    |
-| 30  | FINDONE                       |       |
+| 30  | FINDONE                       | ✅    |
 | 31  | ADDTOSET                      |       |
